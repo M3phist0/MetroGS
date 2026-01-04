@@ -1,0 +1,61 @@
+save_val: false
+model:
+  gaussian:
+    class_path: internal.models.aaags.Gaussian2D
+    init_args:
+      sh_degree: 2
+      optimization:
+        means_lr_scheduler:
+          max_steps: 7500 # optimization's max_steps is divide by bsz
+  metric:
+    class_path: internal.metrics.aaags_metricsv2.DistributedMetrics
+    init_args:
+      sample_alpha: 1.0
+      mono_thresh: 0.005
+      multi_view_from: 30000
+      single_view_from: 0
+      lambda_normal: 0.0125
+      depth_loss_type: l1+ssim
+      depth_loss_ssim_weight: 0.0
+      depth_loss_weight:
+        init: 0.5
+        final_factor: 0.005
+        max_steps: 15000
+  renderer:
+    class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
+    init_args:
+      use_app: true
+      use_app_time: true
+      # use_app_robust: true
+      # aabb: [-6.218173027038574, -17.630346298217773, -3.747204303741455, 6.251328468322754, 18.754179000854492, 5.680068492889404]
+      # aabb: [-6.218173027038574, -4.28935432434082, -3.747204303741455, 6.251328468322754, 5.413186073303223, 5.680068492889404]
+      aabb: [-7.494327545166016, -4.144465446472168, -3.8717851638793945, 7.534551620483398, 5.484979629516602, 5.568201065063477]
+      depth_ratio: 1.0
+      diable_trimming: false
+      appearance_optimization:
+        max_steps: 7500 # optimization's max_steps is divide by bsz
+        warm_up: 0
+  density: 
+    class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
+    init_args:
+      voxel_size: 0.1
+      voxel_thresh: 10
+      pixel_thresh: 20
+      densification_interval: 100
+      densify_until_iter: 30000
+      densify_from_iter: 500
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [1]
+  check_val_every_n_epoch: 5
+  max_steps: 60000
+data:
+  path: data/GauU_Scene/LFLS
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      split_mode: experiment
+      eval_image_select_mode: ratio
+      eval_ratio: 0.1
+      down_sample_factor: 3.4175

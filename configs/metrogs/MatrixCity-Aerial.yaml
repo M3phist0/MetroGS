@@ -1,0 +1,63 @@
+save_val: false
+model:
+  gaussian:
+    class_path: internal.models.aaags.Gaussian2D
+    init_args:
+      sh_degree: 2
+      optimization:
+        means_lr_scheduler:
+          max_steps: 20000 # optimization's max_steps is divide by bsz
+  metric:
+    class_path: internal.metrics.aaags_metricsv2.DistributedMetrics
+    init_args:
+      lambda_scale: 0.0 # 0.1
+      sample_alpha: 1.0
+      mono_thresh: 0.01
+      multi_view_from: 99999999999 # 50000
+      single_view_from: 99999999999 # 0
+      lambda_normal: 0 # 0.0125
+      depth_loss_type: l1+ssim
+      depth_loss_ssim_weight: 0.0
+      depth_loss_weight:
+        init: 0.5
+        final_factor: 0.005
+        max_steps: 50000
+  renderer:
+    class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
+    init_args:
+      use_app: true
+      aabb: [-12, -8, -1, 11, 9, 6]
+      diable_trimming: true
+      redistribute_until: 50000
+      appearance_optimization:
+        max_steps: 20000 # optimization's max_steps is divide by bsz
+        warm_up: 0
+  density: 
+    class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
+    init_args:
+      voxel_size: 0.1
+      voxel_thresh: 10
+      pixel_thresh: 20
+      densify_until_iter: 50000
+      densify_from_iter: 500
+      densification_interval: 300
+      opacity_reset_interval: 6000
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [0, 1]
+  check_val_every_n_epoch: 5
+  max_steps: 150000
+data:
+  use_multi_view: true
+  batch_size: 4
+  path: data/matrix_city/aerial/train/block_all
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      additional_ply_path: add_ply/aerial.ply
+      # overwrite_val_path: data/matrix_city/aerial/test/block_all_test
+      split_mode: reconstruction
+      down_sample_factor: 1.2
+save_iterations:
+- 100000

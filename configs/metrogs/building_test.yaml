@@ -1,0 +1,53 @@
+save_val: true
+model:
+  gaussian:
+    class_path: internal.models.aaags.Gaussian2D
+    init_args:
+      sh_degree: 3
+  metric:
+    class_path: internal.metrics.aaags_metricsv2.DistributedMetrics
+    init_args:
+      sample_alpha: 1.0
+      mono_thresh: 0.0025
+      patch_size: 5
+      radius_increment: 1
+      multi_view_from: 50000
+      single_view_from: 0
+      lambda_normal: 0.0125
+      depth_loss_type: l1+ssim
+      depth_loss_ssim_weight: 0.0
+      depth_loss_weight:
+        init: 0.5
+        final_factor: 0.005
+        max_steps: 30000
+  renderer:
+    class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
+    init_args:
+      use_app: true
+      # use_app_robust: true
+      use_app_time: true
+      aabb: [-263.32293701171875, 27.909358978271484, -245.4950714111328, 97.67997741699219, 49.099483489990234, 549.4611206054688]
+      prune_ratio: 0.05
+      diable_trimming: false
+      contribution_prune_interval: 5000
+      contribution_prune_from_iter: 1000
+      appearance_optimization:
+        max_steps: 12500
+        warm_up: 0
+  density: 
+    class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [3]
+  check_val_every_n_epoch: 5
+  max_steps: 100000
+data:
+  path: data/mill19/building-pixsfm/train
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      overwrite_val_path: data/mill19/building-pixsfm/val
+      eval_image_select_mode: ratio
+      eval_ratio: 0.1
+      down_sample_factor: 4.0

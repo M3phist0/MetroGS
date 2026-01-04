@@ -1,0 +1,54 @@
+save_val: true
+model:
+  gaussian:
+    class_path: internal.models.aaags.Gaussian2D
+    init_args:
+      sh_degree: 3
+      optimization:
+        means_lr_scheduler:
+          max_steps: 12500 # 100000 // 4
+  metric:
+    class_path: internal.metrics.aaags_metricsv2.DistributedMetrics
+    init_args:
+      multi_view_from: 50000
+      lambda_normal: 0.0125
+      depth_loss_type: l1+ssim
+      depth_loss_ssim_weight: 0.0
+      depth_loss_weight:
+        init: 0.5
+        final_factor: 0.005
+        max_steps: 30000
+  renderer:
+    class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
+    init_args:
+      use_app: true
+      use_app_time: true
+      aabb: [-138.02279663085938, 19.04869270324707, -275.5680847167969, 124.96670532226562, 41.305816650390625, 129.54281616210938]
+      diable_trimming: true
+      contribution_prune_interval: 1000
+      contribution_prune_from_iter: 1000
+      appearance_optimization:
+        max_steps: 12500
+        warm_up: 0
+  density: 
+    class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
+    init_args:
+      densify_until_iter: 20000
+      densify_from_iter: 500
+      densification_interval: 500
+      opacity_reset_interval: 6000
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [2]
+  check_val_every_n_epoch: 5
+  max_steps: 100000
+data:
+  path: data/mill19/rubble-pixsfm/train
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      overwrite_val_path: data/mill19/rubble-pixsfm/val
+      eval_image_select_mode: ratio
+      eval_ratio: 0.1
+      down_sample_factor: 4.0

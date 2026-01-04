@@ -1,0 +1,74 @@
+save_val: true
+model:
+  max_save_val_output: 8
+  gaussian:
+    class_path: internal.models.aaags.Gaussian2D
+    init_args:
+      sh_degree: 2
+      optimization:
+        means_lr_init: 1.6e-5
+        means_lr_scheduler:
+          lr_final: 0.8e-6
+          max_steps: 25000 # optimization's max_steps is divide by bsz
+        scales_lr: 0.0025
+  metric:
+    class_path: internal.metrics.aaags_metricsv2.DistributedMetrics
+    init_args:
+      lambda_scale: 0.1
+      sample_alpha: 1.0
+      mono_thresh: 0.001
+      mv_epoch_interval: 2
+      max_src_num: 1
+      max_scale: 2
+      multi_view_from: 50000
+      single_view_from: 0
+      lambda_normal: 0.0125
+      depth_loss_type: l1+ssim
+      depth_loss_ssim_weight: 0.0
+      normal_factor: 0.0
+      depth_loss_weight:
+        init: 1.0
+        final_factor: 0.1
+        max_steps: 50000
+  renderer:
+    class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
+    init_args:
+      use_app: true
+      aabb: [-950, -650, -5, 200, 300, 100]
+      use_app_time: false
+      diable_trimming: true
+      redistribute_until: 50000
+      appearance_optimization:
+        max_steps: 25000 # optimization's max_steps is divide by bsz
+  density: 
+    class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
+    init_args:
+      voxel_size: 1
+      voxel_thresh: 10
+      pixel_thresh: 20
+      densify_until_iter: 50000
+      densify_from_iter: 4000
+      densification_interval: 1000
+      # opacity_reset_interval: 25000
+      opacity_reset_until: -1
+      densify_grad_threshold: 0.000035
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [0, 1, 2, 3]
+  check_val_every_n_epoch: 5
+  max_steps: 180000
+data:
+  use_multi_view: true
+  batch_size: 4
+  path: data/matrix_city/street/train/block_A
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      additional_ply_path: add_ply/street.ply
+      # overwrite_val_path: data/matrix_city/street/test/block_A_test
+      split_mode: reconstruction
+      depth_scale_lower_bound: 0.01
+      depth_scale_upper_bound: 50.0
+save_iterations:
+- 150000

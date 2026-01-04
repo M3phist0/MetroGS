@@ -1,0 +1,39 @@
+save_val: false
+model:
+  gaussian:
+    class_path: internal.models.aaags.Gaussian2D
+    init_args:
+      sh_degree: 2
+      optimization:
+        means_lr_scheduler:
+          max_steps: 20000 # optimization's max_steps is divide by bsz
+  metric:
+    class_path: internal.metrics.aaags_metricsv2.DistributedMetrics
+  renderer:
+    class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
+    init_args:
+      use_app: false
+      use_app_time: false
+      use_app_robust: true
+      k_overlap: 30
+      # aabb: [-14.139521598815918, -10.981257438659668, -0.6946384906768799, 13.240052223205566, 10.768237113952637, 1.2206274271011353]
+      # aabb: [-13.149890899658203, -11.238075256347656, -0.6883490085601807, 13.002132415771484, 10.606813430786133, 1.1385743618011475]
+      aabb: [-12, -8, -1, 11, 9, 6]
+      diable_trimming: false
+      appearance_optimization:
+        max_steps: 20000 # optimization's max_steps is divide by bsz
+        warm_up: 0
+  density: 
+    class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [2]
+data:
+  path: data/matrix_city/aerial/train/block_all
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      overwrite_val_path: data/matrix_city/aerial/test/block_all_test
+      split_mode: reconstruction
+      down_sample_factor: 1.2

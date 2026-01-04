@@ -1,0 +1,30 @@
+save_val: true
+model:
+  gaussian:
+    class_path: internal.models.aaags.Gaussian2D
+    init_args:
+      sh_degree: 3
+  metric:
+    class_path: internal.metrics.aaags_metricsv2.DistributedMetrics
+  renderer:
+    class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
+    init_args:
+      use_app: true
+      use_app_robust: true
+      use_app_time: true
+      aabb: [-187.7257537841797, 48.51551818847656, -559.6927490234375, 300.5282287597656, 113.58418273925781, 234.31126403808594]
+  density: 
+    class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [2]
+data:
+  path: data/urban_scene_3d/residence-pixsfm/train
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      overwrite_val_path: data/urban_scene_3d/residence-pixsfm/val
+      eval_image_select_mode: ratio
+      eval_ratio: 0.1
+      down_sample_factor: 4.0
