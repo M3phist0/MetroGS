@@ -21,7 +21,7 @@ python main_bsz.py fit --config config/merogs/SMBU.yaml -n SMBU
 # Test
 # Please set `aabb` in the YAML file to the computed array.
 # The array values will be printed during the initial stage of training.
-python main.py test --config config/merogs/SMBU.yaml -n SMBU
+python main.py test --config config/merogs/SMBU_TEST.yaml -n SMBU
 ```
 
 We sincerely thank the contributors of [CityGaussianV2](https://github.com/Linketic/CityGaussian.git) for their valuable contributions.
