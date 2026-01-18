@@ -1,7 +1,7 @@
 .idea
 .vscode/
-data
-output*
+*data*
+*output*
 blender/output
 filter
 video*

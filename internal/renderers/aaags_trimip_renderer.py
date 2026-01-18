@@ -202,14 +202,14 @@ class DistributedRendererImpl(Renderer):
                     L = len(target)
                     candi_tuple = min(enumerate(train_set.image_names), key=lambda item:  get_dis(target, item[1], L))
                     candi_idx = candi_tuple[0]
-                    print("dis:", candi_tuple[1], get_dis(target, candi_tuple[1], L), 
-                          train_set.image_names[train_idx], get_dis(target, train_set.image_names[train_idx], L))
+                    # print("dis:", candi_tuple[1], get_dis(target, candi_tuple[1], L), 
+                    #       train_set.image_names[train_idx], get_dis(target, train_set.image_names[train_idx], L))
 
                     if self.use_app_time and get_dis(target, candi_tuple[1], L) < get_dis(target, train_set.image_names[train_idx], L):
                         train_idx = candi_idx
                         val_set.cameras.appearance_id[val_idx] = train_set.cameras.appearance_id[candi_idx]
 
-                    print("Corr:", val_set.image_paths[val_idx], train_set.image_paths[train_idx])
+                    # print("Corr:", val_set.image_paths[val_idx], train_set.image_paths[train_idx])
                 print("Find done.")
 
             lightning_module.trainer.datamodule.dataparser_outputs.val_set.cameras = val_set.cameras
