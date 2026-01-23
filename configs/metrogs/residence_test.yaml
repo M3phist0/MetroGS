@@ -12,7 +12,6 @@ model:
       use_app: true
       use_app_robust: true
       use_app_time: true
-      aabb: [-187.7257537841797, 48.51551818847656, -559.6927490234375, 300.5282287597656, 113.58418273925781, 234.31126403808594]
   density: 
     class_path: internal.density_controllers.aaags_anchor_density_controller.DistributedController
 trainer:

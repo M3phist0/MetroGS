@@ -13,8 +13,8 @@ model:
       lambda_scale: 0.0 # 0.1
       sample_alpha: 1.0
       mono_thresh: 0.01
-      multi_view_from: 99999999999 # 50000
-      single_view_from: 99999999999 # 0
+      multi_view_from: 50000
+      single_view_from: 0
       lambda_normal: 0 # 0.0125
       depth_loss_type: l1+ssim
       depth_loss_ssim_weight: 0.0

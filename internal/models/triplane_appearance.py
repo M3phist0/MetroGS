@@ -108,20 +108,12 @@ class TriMipModel(nn.Module):
         self.app_emb_dim = app_emb_dim
 
         self.occ_grid_resolution = occ_grid_resolution
-        self.aabb = aabb.cuda()
-        aabb_min, aabb_max = torch.split(self.aabb, 3, dim=-1)
-        self.aabb_size = aabb_max - aabb_min
-
-        self.feature_vol_radii = self.aabb_size[0] / 2.0
-        self.register_buffer(
-            "occ_level_vol",
-            torch.log2(
-                self.aabb_size[0]
-                / occ_grid_resolution
-                / 2.0
-                / self.feature_vol_radii
-            ),
-        )
+        
+        self.register_buffer("aabb", torch.zeros(6, dtype=torch.float32))
+        self.register_buffer("aabb_size", torch.zeros(3, dtype=torch.float32))
+        self.register_buffer("feature_vol_radii", torch.zeros((), dtype=torch.float32))
+        self.register_buffer("occ_level_vol", torch.zeros((), dtype=torch.float32))
+        self.update_aabb(aabb)
 
         self.encoding = TriMipEncoding(n_levels, plane_size, feature_dim)
 
@@ -261,20 +253,46 @@ class TriMipModel(nn.Module):
                 dist.barrier()
     
     def update_aabb(self, aabb):
-        self.aabb = aabb.cuda()
-        aabb_min, aabb_max = torch.split(self.aabb, 3, dim=-1)
-        self.aabb_size = aabb_max - aabb_min
+        if not torch.is_tensor(aabb):
+            raise TypeError(f"aabb must be a torch.Tensor, got {type(aabb)}")
+        if aabb.shape[-2:] == (2, 3):
+            aabb_flat = aabb.reshape(*aabb.shape[:-2], 6)
+        else:
+            aabb_flat = aabb
+        if aabb_flat.shape[-1] != 6:
+            raise ValueError(f"aabb last dim must be 6 (or shape (...,2,3)), got {tuple(aabb.shape)}")
+        if aabb_flat.dim() > 1:
+            aabb_flat = aabb_flat.reshape(-1, 6)[0]
+        aabb_flat = aabb_flat.detach()
 
-        self.feature_vol_radii = self.aabb_size[0] / 2.0
-        self.register_buffer(
-            "occ_level_vol",
-            torch.log2(
-                self.aabb_size[0]
-                / self.occ_grid_resolution
-                / 2.0
-                / self.feature_vol_radii
-            ),
+        aabb_flat = aabb_flat.detach()
+
+        if not hasattr(self, "aabb") or not isinstance(getattr(self, "aabb"), torch.Tensor):
+            self.register_buffer("aabb", torch.zeros(6, dtype=torch.float32))
+        if not hasattr(self, "aabb_size") or not isinstance(getattr(self, "aabb_size"), torch.Tensor):
+            self.register_buffer("aabb_size", torch.zeros(3, dtype=torch.float32))
+        if not hasattr(self, "feature_vol_radii") or not isinstance(getattr(self, "feature_vol_radii"), torch.Tensor):
+            self.register_buffer("feature_vol_radii", torch.zeros((), dtype=torch.float32))
+        if not hasattr(self, "occ_level_vol") or not isinstance(getattr(self, "occ_level_vol"), torch.Tensor):
+            self.register_buffer("occ_level_vol", torch.zeros((), dtype=torch.float32))
+
+        self.aabb.copy_(aabb_flat.to(device=self.aabb.device, dtype=self.aabb.dtype))
+
+        aabb_min, aabb_max = torch.split(self.aabb, 3, dim=-1)  # (3,), (3,)
+        aabb_size = aabb_max - aabb_min                          # (3,)
+
+        self.aabb_size.copy_(aabb_size.to(self.aabb_size.device, dtype=self.aabb_size.dtype))
+
+        feature_vol_radii = self.aabb_size[0] / 2.0
+        self.feature_vol_radii.copy_(feature_vol_radii.to(self.feature_vol_radii.device, dtype=self.feature_vol_radii.dtype))
+
+        occ_level_vol = torch.log2(
+            self.aabb_size[0]
+            / self.occ_grid_resolution
+            / 2.0
+            / self.feature_vol_radii
         )
+        self.occ_level_vol.copy_(occ_level_vol.to(self.occ_level_vol.device, dtype=self.occ_level_vol.dtype))
 
     @staticmethod
     def compute_ball_radii(distance, radiis, cos):

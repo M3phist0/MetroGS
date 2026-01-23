@@ -26,10 +26,6 @@ model:
     init_args:
       use_app: true
       use_app_time: true
-      # use_app_robust: true
-      # aabb: [-6.218173027038574, -17.630346298217773, -3.747204303741455, 6.251328468322754, 18.754179000854492, 5.680068492889404]
-      # aabb: [-6.218173027038574, -4.28935432434082, -3.747204303741455, 6.251328468322754, 5.413186073303223, 5.680068492889404]
-      aabb: [-7.494327545166016, -4.144465446472168, -3.8717851638793945, 7.534551620483398, 5.484979629516602, 5.568201065063477]
       depth_ratio: 1.0
       diable_trimming: false
       appearance_optimization:
@@ -47,7 +43,7 @@ model:
 trainer:
   strategy:
     class_path: internal.mp_strategy.MPStrategy
-  devices: [1]
+  devices: [0]
   check_val_every_n_epoch: 5
   max_steps: 60000
 data:

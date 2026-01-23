@@ -21,6 +21,7 @@ python main_bsz.py fit --config config/merogs/SMBU.yaml -n SMBU
 # Test
 # Please set `aabb` in the YAML file to the computed array.
 # The array values will be printed during the initial stage of training.
+python utils/merge_distributed_ckpts.py outputs/SMBU
 python main.py test --config config/merogs/SMBU_TEST.yaml -n SMBU
 ```
 

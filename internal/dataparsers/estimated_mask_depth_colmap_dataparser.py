@@ -14,6 +14,8 @@ class EstimatedDepthColmap(Colmap):
 
     use_mv_mask: bool = False
 
+    image_size: tuple = None
+
     depth_rescaling: bool = True
 
     depth_scale_name: str = "estimated_mask_depth_scales"
@@ -47,6 +49,11 @@ class EstimatedDepthColmapDataParser(ColmapDataParser):
 
     def get_outputs(self) -> DataParserOutputs:
         dataparser_outputs = super().get_outputs()
+
+        if self.params.image_size is None:
+            img_h, img_w = dataparser_outputs.train_set.cameras[0].height.item(), dataparser_outputs.train_set.cameras[0].width.item()
+            self.params.image_size = (img_h, img_w)
+            print("set image size to", self.params.image_size)
 
         if self.params.additional_ply_path:
             from internal.utils.graphics_utils import fetch_ply_without_rgb_normalization
@@ -119,5 +126,13 @@ class EstimatedDepthColmapDataParser(ColmapDataParser):
         depth = depth.astype(np.float32)
         mask = mask.astype(np.uint8)
         depth = depth * depth_scale["scale"] + depth_scale["offset"]
+
+        if depth.shape != self.params.image_size:
+            depth = torch.tensor(depth).unsqueeze(0).unsqueeze(0)  # 1, 1, H, W
+            mask = torch.tensor(mask).unsqueeze(0).unsqueeze(0)  # 1, 1, H, W
+            depth = torch.nn.functional.interpolate(depth, size=self.params.image_size, mode='bilinear', align_corners=False).squeeze(0).squeeze(0)
+            mask = torch.nn.functional.interpolate(mask.float(), size=self.params.image_size, mode='nearest').squeeze(0).squeeze(0).byte()
+            depth = depth.numpy()
+            mask = mask.numpy()
 
         return torch.tensor(depth), torch.tensor(mask)

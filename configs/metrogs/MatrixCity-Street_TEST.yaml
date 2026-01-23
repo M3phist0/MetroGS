@@ -14,8 +14,6 @@ model:
     init_args:
       use_app: true
       use_app_time: false
-      # aabb: [-1108.8165283203125, -660.6905517578125, -30.39513397216797, 311.8224182128906, 208.13633728027344, 58.65856170654297]
-      aabb: [-950, -650, -5, 200, 300, 100]
       diable_trimming: true
       appearance_optimization:
         max_steps: 20000 # optimization's max_steps is divide by bsz

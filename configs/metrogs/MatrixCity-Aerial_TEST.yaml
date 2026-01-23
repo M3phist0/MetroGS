@@ -16,9 +16,6 @@ model:
       use_app_time: false
       use_app_robust: true
       k_overlap: 30
-      # aabb: [-14.139521598815918, -10.981257438659668, -0.6946384906768799, 13.240052223205566, 10.768237113952637, 1.2206274271011353]
-      # aabb: [-13.149890899658203, -11.238075256347656, -0.6883490085601807, 13.002132415771484, 10.606813430786133, 1.1385743618011475]
-      aabb: [-12, -8, -1, 11, 9, 6]
       diable_trimming: false
       appearance_optimization:
         max_steps: 20000 # optimization's max_steps is divide by bsz

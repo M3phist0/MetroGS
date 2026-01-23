@@ -121,8 +121,6 @@ class DistributedRendererImpl(Renderer):
         return output
     
     def __init__(self, config: DistributedRenderer):
-        # super().__init__(config.depth_ratio, config.K, config.v_pow, config.prune_ratio, config.contribution_prune_from_iter, 
-        #                  config.contribution_prune_interval, config.start_prune_ratio, config.diable_start_trimming, config.diable_trimming)
         super().__init__()
         
         # hyper-parameters for trimming
@@ -152,7 +150,10 @@ class DistributedRendererImpl(Renderer):
         self.camera_alpha = config.camera_alpha
         self.k_overlap = config.k_overlap
 
-        self.aabb = config.aabb
+        if config.aabb is not None:
+            self.aabb = self.register_buffer("aabb", config.aabb.clone())
+        else:
+            self.aabb = None
         self.plane_size = config.plane_size
 
         self.use_app = config.use_app
@@ -166,19 +167,8 @@ class DistributedRendererImpl(Renderer):
         lightning_module = kwargs.get("lightning_module", None)
 
         if lightning_module is not None:
-            # if self.n_appearances <= 0:
-            #     max_input_id = 0
-            #     appearance_group_ids = lightning_module.trainer.datamodule.dataparser_outputs.appearance_group_ids
-            #     if appearance_group_ids is not None:
-            #         for i in appearance_group_ids.values():
-            #             if i[0] > max_input_id:
-            #                 max_input_id = i[0]
-            #     n_appearances = max_input_id + 1
-            #     self.n_appearances = n_appearances
-
             self.n_appearances = len(lightning_module.trainer.datamodule.dataparser_outputs.train_set)
             self._setup_model()
-            # print(self.model)
             print("n_appearances:", self.n_appearances)
 
             train_set = lightning_module.trainer.datamodule.dataparser_outputs.train_set
@@ -213,19 +203,6 @@ class DistributedRendererImpl(Renderer):
                 print("Find done.")
 
             lightning_module.trainer.datamodule.dataparser_outputs.val_set.cameras = val_set.cameras
-
-            # path = "data/mill19/rubble-pixsfm/val/similar_images.json"
-            # import json
-            # with open(path, "r") as f:
-            #     sim_data = json.load(f)
-            # self.app_cache = {}
-
-            # test_set = lightning_module.trainer.datamodule.dataparser_outputs.val_set
-            # image_names = test_set.image_names
-            # cameras = test_set.cameras
-            # for idx, name in zip(cameras.idx, image_names):
-            #     self.app_cache[idx.item()] = sim_data[name]
-                ## print(idx.item(), self.app_cache[idx.item()])
 
     def load_state_dict(self, state_dict, strict: bool = False):
         print("load appearance!")

@@ -1,4 +1,4 @@
-save_val: false
+save_val: true
 model:
   gaussian:
     class_path: internal.models.aaags.Gaussian2D
@@ -46,12 +46,12 @@ model:
 trainer:
   strategy:
     class_path: internal.mp_strategy.MPStrategy
-  devices: [0,2,3,4]
+  devices: [0,2,5,6]
   check_val_every_n_epoch: 5
   max_steps: 60000
 data:
   use_multi_view: true
-  batch_size: 4
+  batch_size: 8
   path: data/GauU_Scene/LFLS
   parser:
     class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
@@ -60,6 +60,6 @@ data:
       split_mode: experiment
       eval_image_select_mode: ratio
       eval_ratio: 0.1
-      down_sample_factor: 3.4175
+      down_sample_factor: 13.67 #3.4175
 save_iterations:
 - 30000

@@ -24,9 +24,7 @@ model:
     class_path: internal.renderers.aaags_trimip_renderer.DistributedRenderer
     init_args:
       use_app: true
-      # use_app_robust: true
       use_app_time: true
-      aabb: [-263.32293701171875, 27.909358978271484, -245.4950714111328, 97.67997741699219, 49.099483489990234, 549.4611206054688]
       prune_ratio: 0.05
       diable_trimming: false
       contribution_prune_interval: 5000
