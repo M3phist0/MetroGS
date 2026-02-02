@@ -115,18 +115,44 @@ python utils/image_downsample.py data/your_scene/images --factor $DOWNSAMPLE_RAT
 ```
 The $DOWNSAMPLE_RATIO is 3.4175 for GauU-Scene, 1.2 for aerial view of MatrixCity, 1.0 for street view of MatrixCity (no downsample), and 4.0 for Mill19 and UrbanScene3D.
 
-Secondly, prepare [Depth Anything V2](https://depth-anything-v2.github.io/) for depth regularization:
+Secondly, prepare [MoGe-2](https://github.com/microsoft/MoGe) for depth regularization:
+
+The depth and mask can be generated with:
 ```bash
-# clone the repo.
-git clone https://github.com/DepthAnything/Depth-Anything-V2 utils/Depth-Anything-V2
-
-# NOTE: do not run `pip install -r utils/Depth-Anything-V2/requirements.txt`
-
-# download the pretrained model `Depth-Anything-V2-Large`
-mkdir utils/Depth-Anything-V2/checkpoints
-wget -O utils/Depth-Anything-V2/checkpoints/depth_anything_v2_vitl.pth "https://huggingface.co/depth-anything/Depth-Anything-V2-Large/resolve/main/depth_anything_v2_vitl.pth?download=true"
+python utils/estimate_mask_dataset_depths.py data/your_scene -d $DOWNSAMPLE_RATIO
 ```
-The depth can be generated with:
+
+Thirdly, prepare pointmap ply file.
+
 ```bash
-python utils/estimate_dataset_depths.py data/your_scene -d $DOWNSAMPLE_RATIO
+# 1. Segment all images into K clusters
+#    --split_mode:
+#        expirement   (default) → split a ratio of images as validation set
+#        reconstruction          → use all images for reconstruction
+#    -k: number of segments (clusters)
+#    -r: validation split ratio (default: 0.1)
+#
+python pointmap/scene_images_segment.py data/your_scene_path \
+  --split_mode {expirement(default), reconstruction} \
+  -k 4 -r 0.1 \
+
+
+# 2. Generate PointMap in parallel (multi-GPU)
+#    -g: GPU IDs (space-separated, quoted)
+#    -k: number of segments (must match Step 1)
+#    -b: base directory of the scene data
+#    -c: configuration file (choose one preset):
+#        gauuscene / matrixcity / mill19
+#
+bash pointmap/run_para.sh \
+  -g "0 1 2 3" -k 4 \
+  -b data/your_scene_path \
+  -c ./configs/{gauuscene|matrixcity|mill19}.yaml
+
+
+# 3. Merge all outputs into a single PLY file
+mkdir add_ply
+python pointmap/merge_all.py \
+  --base_dir data/your_scene_path \
+  --output add_ply/your_add_name.ply
 ```
