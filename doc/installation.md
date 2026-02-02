@@ -50,6 +50,19 @@ pip install submodules/diff-gaussian-rasterization --no-build-isolation
 pip install -r requirements.txt
 ```
 
-### F. Download prior models
-MoGe-2: https://huggingface.co/Ruicheng/moge-2-vitl-normal/blob/main/model.pt
-Please download `model.pt` to `utils/MoGe/checkpoints` and rename it to `moge-2-vitl-normal.pt`.
+### F. Download Prior Models
+
+#### MoGe-2
+```bash
+# Mode: moge-2-vitl-normal
+Download link: https://huggingface.co/Ruicheng/moge-2-vitl-normal/blob/main/model.pt
+# Please download `model.pt` and move it to `utils/MoGe/checkpoints`
+```
+
+#### Pi3-Align
+
+```bash
+# Please follow the official script to download the weights:
+cd pointmap/Pi3-Align 
+bash scripts/download_weights.sh
+```

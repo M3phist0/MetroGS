@@ -19,17 +19,17 @@ NAME=metrogs_smbu
 # rm -rf data/GauU_Scene/${SCENE}/segments
 
 # ============================================= train&eval model =============================================
-# export NCCL_SHM_DISABLE=1
-# CUDA_VISIBLE_DEVICES=0,1,2,3 python main_bsz.py fit --config configs/metrogs/train/${SCENE}.yaml -n ${NAME}
+export NCCL_SHM_DISABLE=1
+CUDA_VISIBLE_DEVICES=0,1,2,3 python main_bsz.py fit --config configs/metrogs/train/${SCENE}.yaml -n ${NAME}
 
-# python utils/merge_distributed_ckpts.py outputs/${NAME}
+python utils/merge_distributed_ckpts.py outputs/${NAME}
 
-# rm outputs/${NAME}/checkpoints/*60000-rank*
+rm outputs/${NAME}/checkpoints/*60000-rank*
 
-# python main.py test --config configs/metrogs/val/${SCENE}.yaml -n ${NAME}
+python main.py test --config configs/metrogs/val/${SCENE}.yaml -n ${NAME}
 
 python utils/gs2d_mesh_extraction.py outputs/${NAME} --voxel_size 0.01 --sdf_trunc 0.04 --depth_trunc 2.0
 
-# python tools/eval_tnt/run.py --scene ${PLYGT}_ds --dataset-dir data/geometry_gt/${PLYGT} \
-#     --transform-path data/geometry_gt/${PLYGT}/transform.txt --ply-path outputs/${NAME}/fuse.ply
+python tools/eval_tnt/run.py --scene ${PLYGT}_ds --dataset-dir data/geometry_gt/${PLYGT} \
+    --transform-path data/geometry_gt/${PLYGT}/transform.txt --ply-path outputs/${NAME}/fuse.ply
     

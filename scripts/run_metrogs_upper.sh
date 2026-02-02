@@ -15,7 +15,7 @@ NAME=metrogs_upper
 # ===================================== pointmap assisted initalization ======================================
 # python pointmap/scene_images_segment.py data/GauU_Scene/${SCENE} -k 4 # '-k' indicates number of segments
 # bash pointmap/run_para.sh -g "0 1 2 3" -k 4 -b data/GauU_Scene/${SCENE} -c ./configs/gauuscene.yaml # '-g' indicates gpu ids
-# python pointmap/merge_all.py --base_dir data/GauU_Scene/${SCENE} --output add_ply/${upper}.ply
+# python pointmap/merge_all.py --base_dir data/GauU_Scene/${SCENE} --output add_ply/${ADD}.ply
 # rm -rf data/GauU_Scene/${SCENE}/segments
 
 # ============================================= train&eval model =============================================

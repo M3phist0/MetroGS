@@ -23,4 +23,3 @@ utils/Depth-Anything-V2
 add_ply/*
 utils/filter
 **/__pycache__
-!preprocess/*

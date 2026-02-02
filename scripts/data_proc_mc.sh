@@ -14,8 +14,8 @@ python tools/transform_json2txt_mc_all.py --source_path data/matrix_city/aerial/
 rm -rf data/matrix_city/aerial/train/block_all/sparse
 rm -rf data/matrix_city/aerial/test/block_all_test/sparse
 
-mv data/colmap_results/matrix_city_aerial/train/sparse data/matrix_city/aerial/train/block_all
-mv data/colmap_results/matrix_city_aerial/test/sparse data/matrix_city/aerial/test/block_all_test
+cp -r data/colmap_results/matrix_city_aerial/train/sparse data/matrix_city/aerial/train/block_all
+cp -r data/colmap_results/matrix_city_aerial/test/sparse data/matrix_city/aerial/test/block_all_test
 
 # MatrixCity, Street View, block A
 mkdir data/matrix_city/street/train/block_A
@@ -33,5 +33,5 @@ python tools/transform_json2txt_mc_street.py --source_path data/matrix_city/stre
 rm -rf data/matrix_city/street/train/block_A/sparse
 rm -rf data/matrix_city/street/test/block_A_test/sparse
 
-mv data/colmap_results/matrix_city_street/train/sparse data/matrix_city/street/train/block_A
-mv data/colmap_results/matrix_city_street/test/sparse data/matrix_city/street/test/block_A_test
+cp -r data/colmap_results/matrix_city_street/train/sparse data/matrix_city/street/train/block_A
+cp -r data/colmap_results/matrix_city_street/test/sparse data/matrix_city/street/test/block_A_test
