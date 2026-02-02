@@ -9,6 +9,11 @@ from internal.callbacks import SaveGaussian, KeepRunningIfWebViewerEnabled, Stop
 
 
 def cli(args: ArgsType = None):
+    import os, torch
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    torch.cuda.set_device(local_rank)
+    print("RANK", os.environ.get("RANK"), "LOCAL_RANK", local_rank, "GPU", torch.cuda.current_device())
+
     CLI(
         GaussianSplatting,
         DataModule,
@@ -17,11 +22,11 @@ def cli(args: ArgsType = None):
         trainer_defaults={
             "accelerator": "gpu",
             "strategy": "auto",
-            "devices": 1,
+            # "devices": 1,
             # "logger": "TensorBoardLogger",
             "num_sanity_val_steps": 1,
             # "max_epochs": -1,
-            "max_steps": 30_000,
+            # "max_steps": 30_000,
             "use_distributed_sampler": False,  # use custom ddp sampler
             "enable_checkpointing": False,
             "callbacks": [

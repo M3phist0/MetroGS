@@ -56,15 +56,25 @@ class EstimatedDepthColmapDataParser(ColmapDataParser):
             print("set image size to", self.params.image_size)
 
         if self.params.additional_ply_path:
-            from internal.utils.graphics_utils import fetch_ply_without_rgb_normalization
-            basic_pcd = fetch_ply_without_rgb_normalization(self.params.additional_ply_path)
-            xyz = basic_pcd.points
-            rgb = basic_pcd.colors
-            point_cloud=dataparser_outputs.point_cloud
-            dataparser_outputs.point_cloud.xyz = np.vstack([point_cloud.xyz, xyz])
-            dataparser_outputs.point_cloud.rgb = np.vstack([point_cloud.rgb, rgb])
-            
-            print("additional load {} points from {}".format(xyz.shape[0], self.params.additional_ply_path))
+            if os.path.exists(self.params.additional_ply_path):
+                from internal.utils.graphics_utils import fetch_ply_without_rgb_normalization
+                basic_pcd = fetch_ply_without_rgb_normalization(self.params.additional_ply_path)
+                xyz = basic_pcd.points
+                rgb = basic_pcd.colors
+
+                point_cloud = dataparser_outputs.point_cloud
+                dataparser_outputs.point_cloud.xyz = np.vstack([point_cloud.xyz, xyz])
+                dataparser_outputs.point_cloud.rgb = np.vstack([point_cloud.rgb, rgb])
+
+                print(
+                    "additional load {} points from {}".format(
+                        xyz.shape[0], self.params.additional_ply_path
+                    )
+                )
+            else:
+                print(
+                    f"additional_ply_path does not exist: {self.params.additional_ply_path}, skip loading."
+                )
         
         if self.params.overwrite_val_path:
             new_val_set = self.overwrite_val_set(self.params.overwrite_val_path)

@@ -36,7 +36,7 @@ def main():
     print(loadable_file)
     dataparser_config = None
     if loadable_file.endswith(".ckpt"):
-        ckpt = torch.load(loadable_file, map_location="cpu")
+        ckpt = torch.load(loadable_file, map_location="cpu", weights_only=False)
         # initialize model
         model = GaussianModelLoader.initialize_model_from_checkpoint(
             ckpt,
@@ -89,12 +89,11 @@ def main():
         global_rank=0,
     ).get_outputs()
     cameras = [i.to_device(device) for i in dataparser_outputs.train_set.cameras]
-    cameras = cameras + [i.to_device(device) for i in dataparser_outputs.test_set.cameras]
 
     # set the active_sh to 0 to export only diffuse texture
     model.active_sh_degree = 0
     bg_color = torch.zeros((3,), dtype=torch.float, device=device)
-    maps = GS2DMeshUtils.render_views(model, renderer, cameras, bg_color, dataparser_outputs.test_set)
+    maps = GS2DMeshUtils.render_views(model, renderer, cameras, bg_color, dataparser_outputs.train_set)
     bound = GS2DMeshUtils.estimate_bounding_sphere(cameras)
 
     if args.unbounded:

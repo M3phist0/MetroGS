@@ -6,12 +6,19 @@
 Samuli Laine, Janne Hellsten, Tero Karras, Yeongho Seol, Jaakko Lehtinen, Timo Aila<br>
 [http://arxiv.org/abs/2011.03277](http://arxiv.org/abs/2011.03277)
 
-Nvdiffrast is a PyTorch/TensorFlow library that provides high-performance primitive operations for rasterization-based differentiable rendering.
-Please refer to &#x261E;&#x261E; [nvdiffrast documentation](https://nvlabs.github.io/nvdiffrast) &#x261C;&#x261C; for more information.
+Nvdiffrast is a PyTorch library that provides high-performance primitive operations for rasterization-based differentiable rendering.
+
+To install:
+```
+pip install setuptools wheel ninja
+pip install git+https://github.com/NVlabs/nvdiffrast.git --no-build-isolation
+```
+
+See &#x261E;&#x261E; [nvdiffrast documentation](https://nvlabs.github.io/nvdiffrast) &#x261C;&#x261C; for more information.
 
 ## Licenses
 
-Copyright &copy; 2020&ndash;2024, NVIDIA Corporation. All rights reserved.
+Copyright &copy; 2020&ndash;2025, NVIDIA Corporation. All rights reserved.
 
 This work is made available under the [Nvidia Source Code License](https://github.com/NVlabs/nvdiffrast/blob/main/LICENSE.txt).
 

@@ -10,6 +10,174 @@ from utils.ray import build_ray_bundle, build_world_ray_bundle
 
 from typing import Union, List, Tuple
 
+import os
+from typing import Optional, Sequence, Literal
+import matplotlib.pyplot as plt
+
+
+@torch.no_grad()
+def visualize_encoding(
+    enc: torch.Tensor,
+    save_dir: str,
+    prefix: str = "enc",
+    mode: Literal["grid", "points"] = "grid",
+    # points mode only:
+    xy: Optional[torch.Tensor] = None,   # (N,2) in [0,1], required if mode="points"
+    point_size: float = 2.0,
+    # what to save:
+    save_norm: bool = True,
+    save_pca_rgb: bool = True,
+    save_channels: Optional[Sequence[int]] = None,
+    # normalization:
+    clamp_percentile: Optional[float] = 1.0,  # e.g. 1.0 means clamp [1%,99%]; None disables
+    pca_sample_max: int = 200000,
+):
+    """
+    Visualize an encoding tensor (output of TriMip forward or any encoder) and save images.
+
+    Args:
+      enc:
+        - mode="grid": (H, W, D)
+        - mode="points": (N, D)
+      xy:
+        - required for mode="points": (N,2) in [0,1], used for scatter coordinates
+      save_dir/prefix: output path prefix
+      save_norm: save ||enc|| map
+      save_pca_rgb: save PCA(enc)->RGB visualization
+      save_channels: e.g. [0,1,2,3] saves individual channel grayscale maps
+      clamp_percentile: robust normalization
+      pca_sample_max: subsample count for PCA fitting (speed)
+
+    Outputs:
+      - {prefix}_norm.png
+      - {prefix}_pca_rgb.png
+      - {prefix}_chXXXX.png (optional)
+      - {prefix}_meta.txt
+    """
+    os.makedirs(save_dir, exist_ok=True)
+
+    if mode == "grid":
+        assert enc.ndim == 3, f"mode='grid' expects (H,W,D), got {tuple(enc.shape)}"
+        H, W, D = enc.shape
+        enc_cpu = enc.detach().float().cpu()
+        flat = enc_cpu.reshape(-1, D)  # (H*W, D)
+
+    elif mode == "points":
+        assert enc.ndim == 2, f"mode='points' expects (N,D), got {tuple(enc.shape)}"
+        assert xy is not None, "mode='points' requires xy (N,2)"
+        assert xy.ndim == 2 and xy.shape[1] == 2, f"xy must be (N,2), got {tuple(xy.shape)}"
+        enc_cpu = enc.detach().float().cpu()
+        flat = enc_cpu  # (N, D)
+        xy_cpu = xy.detach().float().cpu().numpy()
+        N, D = enc_cpu.shape
+    else:
+        raise ValueError("mode must be 'grid' or 'points'")
+
+    def robust01(t: torch.Tensor) -> torch.Tensor:
+        # t: any shape
+        t = t.float()
+        if clamp_percentile is not None:
+            qlo = torch.quantile(t.flatten(), clamp_percentile / 100.0)
+            qhi = torch.quantile(t.flatten(), 1.0 - clamp_percentile / 100.0)
+            t = t.clamp(qlo.item(), qhi.item())
+        mn, mx = t.min(), t.max()
+        return (t - mn) / (mx - mn + 1e-8)
+
+    # -------------------------
+    # 1) Norm
+    # -------------------------
+    if save_norm:
+        nrm = torch.linalg.norm(flat, dim=-1)  # (K,)
+        nrm01 = robust01(nrm).numpy()
+
+        out_path = os.path.join(save_dir, f"{prefix}_norm.png")
+        if mode == "grid":
+            plt.imsave(out_path, nrm01.reshape(H, W), cmap="gray")
+        else:
+            plt.figure(figsize=(6, 6))
+            plt.scatter(xy_cpu[:, 0], xy_cpu[:, 1], c=nrm01, s=point_size)
+            plt.xlim(0, 1); plt.ylim(0, 1)
+            plt.axis("off")
+            plt.savefig(out_path, dpi=300, bbox_inches="tight", pad_inches=0)
+            plt.close()
+
+    # -------------------------
+    # 2) PCA -> RGB
+    # -------------------------
+    if save_pca_rgb:
+        # fit PCA on subsampled data
+        K = flat.shape[0]
+        if K > pca_sample_max:
+            idx = torch.randperm(K)[:pca_sample_max]
+            fit = flat[idx]
+        else:
+            fit = flat
+
+        fit = fit - fit.mean(dim=0, keepdim=True)
+        # SVD for top-3 components
+        _, _, Vh = torch.linalg.svd(fit, full_matrices=False)
+        pcs = Vh[:3].T  # (D,3)
+
+        proj = (flat - flat.mean(dim=0, keepdim=True)) @ pcs  # (K,3)
+        proj01 = robust01(proj).numpy()  # normalize jointly into [0,1]
+
+        out_path = os.path.join(save_dir, f"{prefix}_pca_rgb.png")
+        if mode == "grid":
+            plt.imsave(out_path, proj01.reshape(H, W, 3))
+        else:
+            plt.figure(figsize=(6, 6))
+            plt.scatter(xy_cpu[:, 0], xy_cpu[:, 1], c=proj01, s=point_size)
+            plt.xlim(0, 1); plt.ylim(0, 1)
+            plt.axis("off")
+            plt.savefig(out_path, dpi=300, bbox_inches="tight", pad_inches=0)
+            plt.close()
+
+    # -------------------------
+    # 3) Selected channels
+    # -------------------------
+    if save_channels is not None:
+        for ch in save_channels:
+            ch = int(ch)
+            assert 0 <= ch < D, f"channel {ch} out of range (D={D})"
+            vals = flat[:, ch]  # (K,)
+            vals01 = robust01(vals).numpy()
+
+            out_path = os.path.join(save_dir, f"{prefix}_ch{ch:04d}.png")
+            if mode == "grid":
+                plt.imsave(out_path, vals01.reshape(H, W), cmap="gray")
+            else:
+                plt.figure(figsize=(6, 6))
+                plt.scatter(xy_cpu[:, 0], xy_cpu[:, 1], c=vals01, s=point_size)
+                plt.xlim(0, 1); plt.ylim(0, 1)
+                plt.axis("off")
+                plt.savefig(out_path, dpi=300, bbox_inches="tight", pad_inches=0)
+                plt.close()
+
+    # meta
+    meta_path = os.path.join(save_dir, f"{prefix}_meta.txt")
+    with open(meta_path, "w") as f:
+        f.write(f"mode={mode}\n")
+        f.write(f"enc_shape={tuple(enc.shape)}\n")
+        f.write(f"clamp_percentile={clamp_percentile}\n")
+        f.write(f"pca_sample_max={pca_sample_max}\n")
+        if save_channels is not None:
+            f.write(f"save_channels={list(save_channels)}\n")
+
+
+# -------------------------
+# Example usage:
+# -------------------------
+# 1) If you already have forward output on a slice:
+# enc_grid = ...  # (H,W,D) torch tensor
+# visualize_encoding(enc_grid, "./vis", prefix="trimip_z05_lvl0", mode="grid",
+#                    save_norm=True, save_pca_rgb=True, save_channels=[0,1,2,3])
+#
+# 2) If you have arbitrary points:
+# enc = ...       # (N,D)
+# xy  = ...       # (N,2) in [0,1]
+# visualize_encoding(enc, "./vis", prefix="trimip_points", mode="points", xy=xy)
+
+
 class TriMipEncoding(nn.Module):
     def __init__(
         self,
@@ -189,6 +357,9 @@ class TriMipModel(nn.Module):
         )
         encoded_x = self.encoding(positions.view(-1, 3), level.view(-1, 1))
 
+        # enc_grid = encoded_x.view(H, W, -1)
+        # visualize_encoding(enc_grid, save_dir='tmp', prefix=view_idx.cpu().item())
+
         if self.version == 1:
             embedding_expand = embedding.expand(encoded_x.shape[0], -1)
 
@@ -307,7 +478,6 @@ class TriMipModel(nn.Module):
         ].unsqueeze(0)
         x = (x - aabb_min) / (aabb_max - aabb_min)
 
-        # print("x_val:", x)
         return x
     
     def create_optimizer_and_scheduler(self):
@@ -375,8 +545,6 @@ class TriMipModel(nn.Module):
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer=optimizer,
             lr_lambda=lambda iter: lr_final_factor ** min(max(iter - warm_up, 0) / max_steps, 1),
-            verbose=False,
         )
 
         return optimizer, scheduler
-

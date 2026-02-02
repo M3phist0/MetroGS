@@ -519,8 +519,6 @@ class GaussianSplatting(LightningModule):
         if self.trainer.global_rank == 0 and self.hparams["save_val_output"] is True and (
                 self.hparams["max_save_val_output"] < 0 or batch_idx < self.hparams["max_save_val_output"]
         ):
-            # if 'DJI_20231219115850_0189_Zenmuse-L1-mission' not in image_info[0]:
-            #     return
             output_images = []
             if self.renderer_output_types is None:
                 output_images.append(outputs["render"].cpu())
@@ -545,59 +543,59 @@ class GaussianSplatting(LightningModule):
             #         image_tensor=grid,
             #     )
             #
-            image_output_path = os.path.join(
-                self.hparams["output_path"],
-                name,
-                "epoch={}-step={}".format(
-                    max(self.trainer.current_epoch, self.restored_epoch),
-                    max(self.trainer.global_step, self.restored_global_step),
-                ),
-                "test/ours_99997/renders/{}.png".format(image_info[0].replace("/", "_"))
-            )
-            depth_output_path = os.path.join(
-                self.hparams["output_path"],
-                name,
-                "epoch={}-step={}".format(
-                    max(self.trainer.current_epoch, self.restored_epoch),
-                    max(self.trainer.global_step, self.restored_global_step),
-                ),
-                "test/ours_99997/depths/{}.png".format(image_info[0].replace("/", "_"))
-            )
-            normal_output_path = os.path.join(
-                self.hparams["output_path"],
-                name,
-                "epoch={}-step={}".format(
-                    max(self.trainer.current_epoch, self.restored_epoch),
-                    max(self.trainer.global_step, self.restored_global_step),
-                ),
-                "test/ours_99997/normals/{}.png".format(image_info[0].replace("/", "_"))
-            )
+            # image_output_path = os.path.join(
+            #     self.hparams["output_path"],
+            #     name,
+            #     "epoch={}-step={}".format(
+            #         max(self.trainer.current_epoch, self.restored_epoch),
+            #         max(self.trainer.global_step, self.restored_global_step),
+            #     ),
+            #     "test/ours_99997/renders/{}.png".format(image_info[0].replace("/", "_"))
+            # )
+            # depth_output_path = os.path.join(
+            #     self.hparams["output_path"],
+            #     name,
+            #     "epoch={}-step={}".format(
+            #         max(self.trainer.current_epoch, self.restored_epoch),
+            #         max(self.trainer.global_step, self.restored_global_step),
+            #     ),
+            #     "test/ours_99997/depths/{}.png".format(image_info[0].replace("/", "_"))
+            # )
+            # normal_output_path = os.path.join(
+            #     self.hparams["output_path"],
+            #     name,
+            #     "epoch={}-step={}".format(
+            #         max(self.trainer.current_epoch, self.restored_epoch),
+            #         max(self.trainer.global_step, self.restored_global_step),
+            #     ),
+            #     "test/ours_99997/normals/{}.png".format(image_info[0].replace("/", "_"))
+            # )
             
-            gt_output_path = os.path.join(
-                self.hparams["output_path"],
-                name,
-                "epoch={}-step={}".format(
-                    max(self.trainer.current_epoch, self.restored_epoch),
-                    max(self.trainer.global_step, self.restored_global_step),
-                ),
-                "test/ours_99997/gt/{}.png".format(image_info[0].replace("/", "_"))
-            )
-            os.makedirs(os.path.dirname(image_output_path), exist_ok=True)
-            os.makedirs(os.path.dirname(gt_output_path), exist_ok=True)
-            os.makedirs(os.path.dirname(depth_output_path), exist_ok=True)
-            os.makedirs(os.path.dirname(normal_output_path), exist_ok=True)
+            # gt_output_path = os.path.join(
+            #     self.hparams["output_path"],
+            #     name,
+            #     "epoch={}-step={}".format(
+            #         max(self.trainer.current_epoch, self.restored_epoch),
+            #         max(self.trainer.global_step, self.restored_global_step),
+            #     ),
+            #     "test/ours_99997/gt/{}.png".format(image_info[0].replace("/", "_"))
+            # )
+            # os.makedirs(os.path.dirname(image_output_path), exist_ok=True)
+            # os.makedirs(os.path.dirname(gt_output_path), exist_ok=True)
+            # os.makedirs(os.path.dirname(depth_output_path), exist_ok=True)
+            # os.makedirs(os.path.dirname(normal_output_path), exist_ok=True)
             # torchvision.utils.save_image(
             #     torch.concat([outputs["render"], gt_image], dim=-1),
             #     image_output_path,
             # )
-            torchvision.utils.save_image(
-                outputs["render"],
-                image_output_path,
-            )
-            torchvision.utils.save_image(
-                gt_image,
-                gt_output_path,
-            )
+            # torchvision.utils.save_image(
+            #     outputs["render"],
+            #     image_output_path,
+            # )
+            # torchvision.utils.save_image(
+            #     gt_image,
+            #     gt_output_path,
+            # )
             
             surf_depth = outputs["surf_depth"]
             depth = 1. / surf_depth.detach().cpu().numpy().squeeze(0)
@@ -611,16 +609,16 @@ class GaussianSplatting(LightningModule):
 
             # depth = surf_depth.detach().cpu().numpy().squeeze(0)
             # depth[0, 0] = 0.0
-            depth_i = depth / (depth.max() + 1e-8)
-            depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-            depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-            cv2.imwrite(depth_output_path, depth_color)
+            # depth_i = depth / (depth.max() + 1e-8)
+            # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
+            # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
+            # cv2.imwrite(depth_output_path, depth_color)
 
-            normal_i = outputs["rend_normal"].permute(1,2,0)
-            normal_i = normal_i/(normal_i.norm(dim=-1, keepdim=True)+1.0e-8)
-            normal_i = normal_i.detach().cpu().numpy()
-            normal_i = ((normal_i+1) * 127.5).astype(np.uint8).clip(0, 255)
-            cv2.imwrite(normal_output_path, normal_i)
+            # normal_i = outputs["rend_normal"].permute(1,2,0)
+            # normal_i = normal_i/(normal_i.norm(dim=-1, keepdim=True)+1.0e-8)
+            # normal_i = normal_i.detach().cpu().numpy()
+            # normal_i = ((normal_i+1) * 127.5).astype(np.uint8).clip(0, 255)
+            # cv2.imwrite(normal_output_path, normal_i)
 
     def on_validation_epoch_start(self) -> None:
         super().on_validation_epoch_start()

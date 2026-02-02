@@ -1,2 +1,0 @@
-model:
-  renderer: internal.renderers.pypreprocess_gsplat_renderer.PythonPreprocessGSplatRenderer

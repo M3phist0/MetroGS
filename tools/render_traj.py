@@ -117,6 +117,7 @@ if __name__ == "__main__":
 
     idx = 0
     import torchvision
+    renderer.use_app = False
     for t in tqdm(range(len(cam_traj) - 1, -1, -1)):
         cam = cam_traj[t]
         cam.height = torch.tensor(cam.height, device=cam.R.device)
@@ -125,7 +126,7 @@ if __name__ == "__main__":
 
         torchvision.utils.save_image(
             img,
-            f'/mnt/sharedisk/chenkehua/GS+Nerf/AAAGS/tmt/{idx}.png',
+            f'/mnt/sharedisk/chenkehua/GS+Nerf/MetroGS/tmt/{idx}.png',
         )
         idx += 1
 

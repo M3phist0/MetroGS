@@ -1,3 +1,0 @@
-lightning[pytorch-extra]==2.3.*
-pytorch-lightning==2.3.*
--r common.txt

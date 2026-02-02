@@ -3,36 +3,53 @@
 
 ```bash
 # clone repository
-git clone https://github.com/DekuLiuTesla/CityGaussian.git
-cd CityGaussian
+git clone https://github.com/M3phist0/MetroGS.git
+cd MetroGS
 ```
 
 ### B. Create virtual environment
 
 ```bash
 # create virtual environment
-conda create -yn gspl python=3.9 pip
-conda activate gspl
+conda create -n metrogs python=3.10
+conda activate metrogs
 ```
 
 ### C. Install PyTorch
-* Tested on `PyTorch==2.0.1`
+* We reimplemented the method on RTX 5090 due to an equipment upgrade in our group.
+* Tested on `PyTorch==2.10`
 * You must install the one match to the version of your nvcc (nvcc --version)
-* For CUDA 11.8
+* For CUDA 12.8
 
   ```bash
-  pip install -r requirements/pyt201_cu118.txt
+  pip install torch torchvision -i https://pypi.tuna.tsinghua.edu.cn/simple -f https://mirrors.aliyun.com/pytorch-wheels/cu128
   ```
 
-### D. Install requirements
+### D. Install submodules
+Use `--no-build-isolation` to resolve the error “ModuleNotFoundError: No module named 'torch'”.
+```bash
+# basic
+pip install submodules/dist-2dgs --no-build-isolation
+pip install submodules/simple-knn --no-build-isolation
+# patchmatch
+pip install submodules/propagation --no-build-isolation
+# apperance
+pip install submodules/nvdiffrast --no-build-isolation
+pip install submodules/tiny-cuda-nn/bindings/torch --no-build-isolation
+```
+Note: The `-gencode=arch=compute_xx,code=sm_xx` setting in submodules/propagation/setup.py must be adjusted to match your hardware environment.
+
+`diff-gaussian-rasterization` is required by the base classes, even though we do not use it directly.
+```bash
+pip install submodules/diff-gaussian-rasterization --no-build-isolation
+```
+
+### E. Install requirements
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### E. Install additional package for CityGaussian
-
-```bash
-pip install -r requirements/CityGS.txt
-```
-Note that here we use modified version of Trim2DGS rasterizer, so as to resolve [impulse noise problem](https://github.com/hbb1/2d-gaussian-splatting/issues/174) under street views. This version also avoids interference from out-of-view surfels.
+### F. Download prior models
+MoGe-2: https://huggingface.co/Ruicheng/moge-2-vitl-normal/blob/main/model.pt
+Please download `model.pt` to `utils/MoGe/checkpoints` and rename it to `moge-2-vitl-normal.pt`.

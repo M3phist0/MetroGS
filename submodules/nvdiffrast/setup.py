@@ -6,46 +6,50 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
-import nvdiffrast
 import setuptools
 import os
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+# Print an error message if there's no PyTorch installed.
+try:
+    from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+except ImportError:
+    # This happens if the user runs 'pip install' with default build isolation
+    # OR if they simply don't have torch installed at all.
+    print("\n\n" + "*" * 70)
+    print("ERROR! Cannot compile nvdiffrast CUDA extension. Please ensure that:\n")
+    print("1. You have PyTorch installed")
+    print("2. You run 'pip install' with --no-build-isolation flag")
+    print("*" * 70 + "\n\n")
+    exit(1)
 
 setuptools.setup(
-    name="nvdiffrast",
-    version=nvdiffrast.__version__,
-    author="Samuli Laine",
-    author_email="slaine@nvidia.com",
-    description="nvdiffrast - modular primitives for high-performance differentiable rendering",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/NVlabs/nvdiffrast",
-    packages=setuptools.find_packages(),
-    package_data={
-        'nvdiffrast': [
-            'common/*.h',
-            'common/*.inl',
-            'common/*.cu',
-            'common/*.cpp',
-            'common/cudaraster/*.hpp',
-            'common/cudaraster/impl/*.cpp',
-            'common/cudaraster/impl/*.hpp',
-            'common/cudaraster/impl/*.inl',
-            'common/cudaraster/impl/*.cu',
-            'lib/*.h',
-            'torch/*.h',
-            'torch/*.inl',
-            'torch/*.cpp',
-            'tensorflow/*.cu',
-        ] + (['lib/*.lib'] if os.name == 'nt' else [])
-    },
-    include_package_data=True,
-    install_requires=['numpy'],  # note: can't require torch here as it will install torch even for a TensorFlow container
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
+    ext_modules=[
+        CUDAExtension(
+            "_nvdiffrast_c",
+            sources=[
+                "csrc/common/antialias.cu",
+                "csrc/common/common.cpp",
+                "csrc/common/cudaraster/impl/Buffer.cpp",
+                "csrc/common/cudaraster/impl/CudaRaster.cpp",
+                "csrc/common/cudaraster/impl/RasterImpl.cpp",
+                "csrc/common/cudaraster/impl/RasterImpl_kernel.cu",
+                "csrc/common/interpolate.cu",
+                "csrc/common/rasterize.cu",
+                "csrc/common/texture.cpp",
+                "csrc/common/texture_kernel.cu",
+                "csrc/torch/torch_antialias.cpp",
+                "csrc/torch/torch_bindings.cpp",
+                "csrc/torch/torch_interpolate.cpp",
+                "csrc/torch/torch_rasterize.cpp",
+                "csrc/torch/torch_texture.cpp",
+            ],
+            extra_compile_args={
+                "cxx": ["-DNVDR_TORCH"]
+                # Disable warnings in torch headers.
+                + (["/wd4067", "/wd4624", "/wd4996"] if os.name == "nt" else []),
+                "nvcc": ["-DNVDR_TORCH", "-lineinfo"],
+            },
+        )
     ],
-    python_requires='>=3.6',
+    cmdclass={"build_ext": BuildExtension},
 )

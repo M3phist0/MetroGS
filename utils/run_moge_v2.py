@@ -117,9 +117,7 @@ try:
             # ndarray_saver.save(normalized_depth, output_filename)
 
             if args.preview is True:
-                os.makedirs("./mogetmp/", exist_ok=True)
-                image_saver.save(normalized_depth, os.path.join("./mogetmp/", "{}.png".format(image_name)), processor=apply_color_map)
-                # image_saver.save(normalized_depth, os.path.join(args.output, "{}.png".format(image_name)), processor=apply_color_map)
+                image_saver.save(normalized_depth, os.path.join(args.output, "{}.png".format(image_name)), processor=apply_color_map)
 
 finally:
     ndarray_saver.stop()

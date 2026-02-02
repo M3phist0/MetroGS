@@ -11,7 +11,7 @@ from .renderer import RendererOutputTypes, RendererOutputInfo, Renderer
 from ..cameras import Camera
 from ..models.gaussian import GaussianModel
 
-from diff_surfel_rasterization import GaussianRasterizationSettings, GaussianRasterizer
+from dist_2dgs import GaussianRasterizationSettings, GaussianRasterizer
 
 
 class Vanilla2DGSRenderer(Renderer):

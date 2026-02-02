@@ -10,6 +10,9 @@ import open3d as o3d
 from skimage import measure
 from tqdm.auto import tqdm
 
+import os
+import json
+from internal.utils.propagate_utils import check_geometric_consistency
 
 def get_rays(camera, scale=1.0):
     W, H = int(camera.width/scale), int(camera.height/scale)
@@ -92,18 +95,6 @@ class GS2DMeshUtils:
         rgbmaps = []
         depthmaps = []
 
-        import cv2
-        import os
-        import json
-        import random
-        from PIL import Image
-        import torchvision
-        from internal.utils.propagate_utils import depth_propagation, check_geometric_consistency
-
-        print("xyz:", model.get_xyz.shape)
-
-        os.makedirs("./tmp", exist_ok=True)
-
         multi_view_path = os.path.join(
         os.path.dirname(os.path.dirname(imageset.image_paths[0])),
             "multi_view.json"
@@ -118,48 +109,10 @@ class GS2DMeshUtils:
 
             render_pkg = renderer(viewpoint_cam, model, bg_color)
             rgb = render_pkg['render']
-            # alpha = render_pkg['rend_alpha']
-            normal = torch.nn.functional.normalize(render_pkg['rend_normal'], dim=0)
             depth = render_pkg['surf_depth']
-            depth_normal = render_pkg['surf_normal']
             rgbmaps.append(rgb.cpu())
             depthmaps.append(depth.cpu())
             rgb = rgb.detach().cpu()
-
-            continue
-            if i >= len(imageset.image_names):
-                continue
-
-            # depth_i = 1. / depth.squeeze(0).cpu().numpy()
-            # depth_i = (depth_i - depth_i.min()) / (depth_i.max() + 1e-8)
-            # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-            # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-            # image_name = imageset.image_names[i]
-            # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_rend.png"), depth_color)
-            # continue
-            
-            # self.alphamaps.append(alpha.cpu())
-            # self.normals.append(normal.cpu())
-            # self.depth_normals.append(depth_normal.cpu())
-            # if True or 'DJI_20231116105729_0041_Zenmuse-L1-mission' in imageset.image_names[i]:
-            #     depth = depth.squeeze(0)
-            #     depth_i = 1. / depth.cpu().numpy()
-            #     depth_i[0, 0] = 0
-            #     depth_i = (depth_i - depth_i.min()) / (depth_i.max() + 1e-8)
-            #     depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-            #     depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-            #     cv2.imwrite(os.path.join("./tmp",  f"{imageset.image_names[i]}_rend.png"), depth_color)
-            # continue
-
-            # HighP_Scenes = ['CUHK_UPPER', 'LFLS']
-            # need_skip = False
-            # for name_p in HighP_Scenes:
-            #     if name_p in multi_view_path:
-            #         need_skip = True
-            #         break
-            # if need_skip:
-            #     continue
-            # continue
 
             if imageset:
                 image_name = imageset.image_names[i]
@@ -169,16 +122,8 @@ class GS2DMeshUtils:
                 continue
             src_name_list = multi_view_info[image_name]
 
-            # if 'DJI_20231219115045_0083_Zenmuse-L1-mission' not in image_name and 'DJI_20231219115053_0086_Zenmuse-L1-mission' not in image_name:
-            #     continue
-
-            # if '3593' not in image_name:
-            #     continue
-
-            # len_thresh = 0 if 'matrix_city' in multi_view_path else 7
-            # pix_thresh = 1 if 'matrix_city' in multi_view_path else 1024
-            len_thresh = 0
-            pix_thresh = 1
+            len_thresh = 0 if 'matrix_city' in multi_view_path else 7
+            pix_thresh = 1 if 'matrix_city' in multi_view_path else 1024
 
             if len(src_name_list) > len_thresh:
                 geometric_counts = None
@@ -207,225 +152,14 @@ class GS2DMeshUtils:
                 depth_filter = depth.clone()
                 depth_filter[~cost_mask] = 1e9
                 depth_filter[depth_filter < 0.1] = 1e9
-                # like ciygs-x only when render for MatrixCity
+                # like ciygs-x
 
                 ref_index = name2index[image_name]
-                # if 'street' in multi_view_path.lower():
                 if imageset.extra_data_processor(imageset.extra_data[ref_index]) is not None:
                     depth_mono_mask = imageset.extra_data_processor(imageset.extra_data[ref_index])[1].cuda()
                     depth_filter[~depth_mono_mask.unsqueeze(0).bool()] = 1e9
 
-                # depth_i = 1. / depth_filter.squeeze(0).cpu().numpy()
-                # depth_i = (depth_i - depth_i.min()) / (depth_i.max() + 1e-8)
-                # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-                # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_rend.png"), depth_color)
-
                 depthmaps[-1] = depth_filter.cpu()
-            continue
-
-            # if '84' not in image_name:
-            #     continue
-            # continue
-            # if 'DJI_20231116105729_0041_Zenmuse-L1-mission' not in image_name:
-            #     continue
-
-            # mapping = render_pkg['mapping']
-            # mapping = (mapping - mapping.min()) / (mapping.max() - mapping.min())
-            # torchvision.utils.save_image(mapping, 'output.png')
-
-            # tensor = mapping
-            # img = tensor.permute(1, 2, 0).cpu().numpy()
-
-            # # 分离通道
-            # R, G, B = img[:,:,0], img[:,:,1], img[:,:,2]
-
-            # # 构造每个单色图（只在该通道保留值，其他为0）
-            # zeros = np.zeros_like(R)
-            # img_R = np.stack([R, zeros, zeros], axis=2)
-            # img_G = np.stack([zeros, G, zeros], axis=2)
-            # img_B = np.stack([zeros, zeros, B], axis=2)
-
-            # # 转换为 uint8 并保存
-            # for name, arr in zip(['R','G','B'], [img_R, img_G, img_B]):
-            #     arr = (arr * 255).astype('uint8')
-            #     Image.fromarray(arr).save(f'{image_name}_{name}.png')
-            #     print(f'Saved {image_name}_{name}.png')
-            
-            src_name = image_name
-            if len(src_name_list) > 0 and i < 9999999:
-                # src_name = random.choice(src_name_list)
-                ref_index = name2index[image_name]
-                ref_path = imageset.image_paths[ref_index]
-                gt_image = torch.from_numpy(np.array(Image.open(ref_path)).astype(np.float64) / 255.0).permute(2, 0, 1).cuda()
-                torchvision.utils.save_image(gt_image, os.path.join("./tmp",  f"{image_name}_gt.png"))
-                # depth = depth.squeeze(0)
-                # depth_i = depth.cpu().numpy()
-                # depth_i[0, 0] = 0
-                # depth_i = (depth_i - depth_i.min()) / (depth_i.max() + 1e-8)
-                # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-                # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_rend.png"), depth_color)
-                # continue
-
-                if imageset.extra_data_processor(imageset.extra_data[ref_index]) is None:
-                    continue
-                # ---------------------------------------
-                all_cameras = [viewpoint_cam]
-                all_images = [gt_image]
-                for idx, src_name in enumerate(src_name_list):
-                    # if idx >= 3:
-                    #     break
-                    src_index = name2index[src_name]
-                    src_camera = cameras[src_index]
-                    src_path = imageset.image_paths[src_index]
-                    src_gt_image = torch.from_numpy(np.array(Image.open(src_path)).astype(np.float64) / 255.0).permute(2, 0, 1).cuda()
-                    # torchvision.utils.save_image(src_gt_image, os.path.join("./tmp",  f"{image_name}_src_{idx}.png"))
-                    all_cameras.append(src_camera)
-                    all_images.append(src_gt_image)
-                depth_mono = imageset.extra_data_processor(imageset.extra_data[ref_index])[0].cuda()
-                depth_mono_mask = imageset.extra_data_processor(imageset.extra_data[ref_index])[1].cuda()
-
-                propagated_depth, propagated_normal = depth_propagation(viewpoint_cam, gt_image, depth, all_cameras, all_images, patch_size=5, max_scale=3, radius_increment=1)
-
-                geometric_counts = None
-                ref_K = viewpoint_cam.get_K()[:3, :3]
-                ref_pose = viewpoint_cam.world_to_camera.transpose(0, 1).inverse()
-                for idx, src_name in enumerate(src_name_list):
-                    # if idx >= 3:
-                    #     break
-                    src_index = name2index[src_name]
-                    src_camera = cameras[src_index]
-                    src_render_pkg = renderer(src_camera, model, bg_color)
-                    src_depth = src_render_pkg['surf_depth']
-                    src_K = src_camera.get_K()[:3, :3]
-                    src_pose = src_camera.world_to_camera.transpose(0, 1).inverse()
-
-                    mask, _, _, _, _ = check_geometric_consistency(propagated_depth.unsqueeze(0), ref_K.unsqueeze(0), 
-                                ref_pose.unsqueeze(0), src_depth.unsqueeze(0), 
-                                src_K.unsqueeze(0), src_pose.unsqueeze(0), thre1=1, thre2=0.01)
-                    
-                    if geometric_counts is None:
-                        geometric_counts = mask.to(torch.uint8)
-                    else:
-                        geometric_counts += mask.to(torch.uint8)
-                  
-                cost = geometric_counts.squeeze()
-                cost_mask = cost >= 1
-
-                depth = depthmaps[-1]
-                depth[cost_mask.unsqueeze(0).cpu()] = propagated_depth[cost_mask].unsqueeze(0).cpu()
-                # depth = propagated_depth.unsqueeze(0).cpu()
-                depthmaps[-1] = depth
-
-                depth = 1. / depthmaps[-1].squeeze(0).cpu().numpy()
-                depth_i = (depth - depth.min()) / (depth.max() + 1e-8)
-                depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-                depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                cv2.imwrite(os.path.join("./tmp",  f"{image_name}_depth.png"), depth_color)
-
-                # continue
-                cost_mask = cost_mask.cpu().to(bool).numpy()
-
-                depth = 1. / propagated_depth.clone().cpu().numpy()
-                depth[~cost_mask] = 1./depthmaps[-1].squeeze(0).numpy()[~cost_mask]
-                # depth_i = (depth - depth.min()) / (depth.max() - depth.min() + 1e-8)
-                depth_i = (depth - depth.min()) / (depth.max() + 1e-8)
-                depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-                depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                cv2.imwrite(os.path.join("./tmp",  f"{image_name}_depth_propa_filter.png"), depth_color)
-
-                inv_depth_propa = 1. / propagated_depth
-                inv_depth_mono = depth_mono
-
-                from internal.utils.rank import get_depth_align, get_depth_completion
-
-                valid_mask = (cost >= 1).unsqueeze(0)
-                input_depth_ori = inv_depth_propa.clone().unsqueeze(0)
-                input_depth = inv_depth_propa.unsqueeze(0)
-                # input_depth[~valid_mask] = 0.0
-                error_mask = None
-                # for psz in [16, 32, 64, 128, 256, 518, 1024]:
-                for psz in [16, 32]:
-                    transformed_depth = get_depth_completion(input_depth, depth_mono.unsqueeze(0), valid_mask, patch_size=psz)
-
-                    if transformed_depth is not None:
-                        if error_mask is None:
-                            error_mask = torch.abs(transformed_depth - input_depth) < 0.001
-                        else:
-                            error_mask = torch.logical_or(error_mask, torch.abs(transformed_depth - input_depth) < 0.001)
-
-                    if error_mask is not None:
-                        valid_mask = torch.logical_or(valid_mask, error_mask)
-
-                # depth_mono = depth_mono * depth_mono_mask
-                # m = torch.median(depth_mono)
-                # depth_mono[depth_mono > m] = m
-                # depth_mono[0, 0] = 0
-                # depth = depth_mono.squeeze(0).cpu().numpy()
-                # print("range:", depth_mono.min(), depth_mono.max(), m, (depth_mono_mask == 0).sum(), depth_mono_mask.sum())
-                # depth_i = (depth - depth.min()) / (depth.max() - depth.min() + 1e-8)
-                # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-                # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_depth_mono.png"), depth_color)
-
-                input_depth = input_depth.cpu().squeeze(0).numpy()
-                input_depth[~valid_mask.cpu().squeeze(0).numpy()] = 1. / depthmaps[-1].squeeze(0).numpy()[~valid_mask.cpu().squeeze(0).numpy()]
-                # depth = input_depth.squeeze(0).cpu().numpy()
-                depth = input_depth
-                depth_i = (depth - depth.min()) / (depth.max() - depth.min() + 1e-8)
-                # depth_i = (depth - depth.min()) / (depth.max() + 1e-8)
-                depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-                depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                cv2.imwrite(os.path.join("./tmp",  f"{image_name}_depth_propa_ar.png"), depth_color)
-
-                # ---------------------------------------
-
-                # 记得也和PM之后的深度对比一下，如果相似则以PM深度优先（为了平滑）、最后再通过法线进一步平滑
-                
-                # transformed_depth = get_depth_align(inv_depth_propa.unsqueeze(0), depth_mono.unsqueeze(0), (cost >= 1).unsqueeze(0), patch_size=64)
-                # transformed_depth = transformed_depth.squeeze(0)
-             
-                # depth = transformed_depth.cpu().numpy()
-                # depth_i = (depth - depth.min()) / (depth.max() - depth.min() + 1e-8)
-                # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-                # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-                # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_depth_trans.png"), depth_color)
-
-
-                # normal_i = propagated_normal
-                # normal_i[~cost_mask] = 0
-                # normal_i = normal_i/(normal_i.norm(dim=-1, keepdim=True)+1.0e-8)
-                # normal_i = normal_i.detach().cpu().numpy()
-                # normal_i = ((normal_i+1) * 127.5).astype(np.uint8).clip(0, 255)
-                # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_normal_pro.png"), normal_i)
-
-                # print(image_name, len(src_name_list), src_name_list)
-
-            # rgb = rgb.detach().cpu()
-
-            # torchvision.utils.save_image(rgb, os.path.join("./tmp",  f"{image_name}_rgb.png"))
-
-            # depth = 1. / render_pkg['surf_depth']
-            # depth[valid_mask] = input_depth[valid_mask]
-            # depth = depth.detach().cpu().numpy().squeeze(0)
-            # depth_i = (depth - depth.min()) / (depth.max() - depth.min() + 1e-8)
-            # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-            # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-            # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_depth.png"), depth_color)
-
-            # normal = normal.permute(1,2,0)
-            # normal = normal/(normal.norm(dim=-1, keepdim=True)+1.0e-8)
-            # normal = normal.detach().cpu().numpy()
-            # normal = ((normal+1) * 127.5).astype(np.uint8).clip(0, 255)
-            # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_normal.png"), normal)
-
-            # depth_normal = depth_normal.permute(1,2,0)
-            # depth_normal = depth_normal/(depth_normal.norm(dim=-1, keepdim=True)+1.0e-8)
-            # depth_normal = depth_normal.detach().cpu().numpy()
-            # depth_normal = ((depth_normal+1) * 127.5).astype(np.uint8).clip(0, 255)
-            # cv2.imwrite(os.path.join("./tmp",  f"{image_name}_depth_normal.png"), depth_normal)
-        # exit(0)
 
         return rgbmaps, depthmaps
 

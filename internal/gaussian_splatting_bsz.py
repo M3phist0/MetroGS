@@ -369,7 +369,9 @@ class GaussianSplatting(LightningModule):
                         if extra_data is None:
                             H, W = image_info[1].shape[1], image_info[1].shape[2]
                             extra_data = (torch.zeros(H, W).cuda(), torch.zeros(H, W).cuda())
+                            # extra_data = torch.zeros(H, W).cuda()
                         gt_image_list.append(torch.cat([image_info[1], extra_data[0].unsqueeze(0), extra_data[1].unsqueeze(0)])) # 5 H W
+                        # gt_image_list.append(torch.cat([image_info[1], extra_data.unsqueeze(0)])) # 4 H W
                     else:
                         gt_image_list.append(image_info[1]) # 3 H W
                 images_to_broadcast = torch.stack(gt_image_list)
@@ -377,6 +379,7 @@ class GaussianSplatting(LightningModule):
                 H, W = batch[0][0].height.cpu().item(), batch[0][0].width.cpu().item()
                 if broadcast_extra:
                     images_to_broadcast = torch.empty((self.batch_size, 5, H, W), device=self.device)
+                    # images_to_broadcast = torch.empty((self.batch_size, 4, H, W), device=self.device)
                 else:
                     images_to_broadcast = torch.empty((self.batch_size, 3, H, W), device=self.device)
             torch.distributed.broadcast(images_to_broadcast, src=0)
@@ -421,8 +424,6 @@ class GaussianSplatting(LightningModule):
         metrics, prog_bar = self.metric.get_train_metrics(self, self.gaussian_model, iteration, batch, outputs_list)
         metrics_denom = max(sum(1 for i in outputs_list if i["render"] is not None), 1)
         self.log_metrics(metrics, prog_bar, prefix="train", on_step=True, on_epoch=False, denom=metrics_denom)
-
-        self.data_weights = self.metric.get_data_weights(self, batch, outputs_list, self.data_weights)
 
         # log learning rate and gaussian count every 100 iterations (without plus one step)
         if check_update_at_this_iter(iteration, bsz, 100, 0):
@@ -545,15 +546,6 @@ class GaussianSplatting(LightningModule):
             self.density_updated_by_renderer()
 
             print(f"number_of_gaussian_after_pruning={self.gaussian_model.get_xyz.shape[0]}")
-
-    def on_train_epoch_start(self):
-        current_epoch = self.trainer.current_epoch
-
-        if current_epoch % 2 == 0:
-            self.trainer.train_dataloader.update_weights(None)
-            self.data_weights = torch.ones(len(self.trainer.train_dataloader.indices))
-        else:
-            self.trainer.train_dataloader.update_weights(self.data_weights)
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         # the value of `trainer.global_step` here

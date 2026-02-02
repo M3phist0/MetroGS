@@ -221,12 +221,6 @@ class Dataset(torch.utils.data.Dataset):
         #     extra_data = extra_data, self.get_multi_view_data(index)
         return extra_data
 
-    # def _resize(self, cam, image, extra, size=(1600, 1200)):
-    #     resized_cam = cam
-    #     resized_image = image
-    #     resized_extra = extra
-    #     return resized_cam, resized_image, resized_extra
-
     def __getitem__(self, index) -> Tuple[Camera, Tuple, Any]:
         return self.image_cameras[index], self.get_image(index), self.get_extra_data(index)
         # return self._resize(self.image_cameras[index], self.get_image(index), self.get_extra_data(index))
@@ -293,12 +287,6 @@ class CacheDataLoader(torch.utils.data.DataLoader):
             self.cache_thread = threading.Thread(target=self._async_cache)
             self.cache_thread.start()
 
-        self.weights = None
-
-    def update_weights(self, new_weights):
-        assert new_weights is None or len(new_weights) == len(self.indices)
-        self.weights = new_weights
-
     def _async_cache(self):
         # TODO: GC will freeze program a while
         while not self.stop_caching:
@@ -345,11 +333,7 @@ class CacheDataLoader(torch.utils.data.DataLoader):
         # TODO: support batching
         if self.max_cache_num < 0:
             if self.shuffle is True:
-                if self.weights is None:
-                    indices = torch.randperm(len(self.cached), generator=self.generator).tolist()  # shuffle for each epoch
-                    # print("#{} 1st index: {}".format(os.getpid(), indices[0]))
-                else:
-                    indices = torch.multinomial(self.weights, len(self.cached), replacement=True, generator=self.generator).tolist()
+                indices = torch.randperm(len(self.cached), generator=self.generator).tolist()  # shuffle for each epoch
             else:
                 indices = list(range(len(self.cached)))
 

@@ -1,28 +1,25 @@
 # MetroGS
 MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes
 
-The current implementation is preliminary and subject to ongoing development. The repository will be continuously updated and improved in future.
+The current implementation is preliminary and subject to ongoing development. The repository will be continuously updated and improved in future. (TODO: Incorporate CLM-GS.)
 
-The data preparation refers to: [CityGS-data](https://github.com/Linketic/CityGaussian/blob/main/doc/data_preparation.md).
+## Getting Started
+- [Installation](doc/installation.md)
+- [Data Preparation](doc/data_preparation.md)
+- [Run and Eval](doc/run&eval.md)
+- [Video Rendering on GS and Mesh](doc/render_video.md)
 
-Run example:
-```
-# Obtain monocular depth maps (MoGeV2)
-python utils/estimate_dataset_mask_depths.py data/GauU_Scene/SMBU -d 3.4175
-
-# Obtain adjacent view information
-python utils/multi_view_filter.py data/GauU_Scene/SMBU
-
-# Train
-# Note: Preprocessed PLY files are currently not provided.
-# Please comment out `additional_ply_path` in the configuration.
-python main_bsz.py fit --config config/merogs/SMBU.yaml -n SMBU
-
-# Test
-# Please set `aabb` in the YAML file to the computed array.
-# The array values will be printed during the initial stage of training.
-python utils/merge_distributed_ckpts.py outputs/SMBU
-python main.py test --config config/merogs/SMBU_TEST.yaml -n SMBU
+## Citation
+If you find this repository useful, please use the following BibTeX entry for citation.
+```latex
+@article{chen2025metrogs,
+  title={MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes},
+  author={Chen, Kehua and Mao, Tianlu and Ma, Zhuxin and Jiang, Hao and Li, Zehao and Liu, Zihan and Gao, Shuqi and Zhao, Honglong and Dai, Feng and Zhang, Yucheng and others},
+  journal={arXiv preprint arXiv:2511.19172},
+  year={2025}
+}
 ```
 
-We sincerely thank the contributors of [CityGaussianV2](https://github.com/Linketic/CityGaussian.git) for their valuable contributions.
+## Acknowledgements
+
+This repo benefits from [CityGSV2](https://github.com/Linketic/CityGaussian), [CityGS-X](https://github.com/gyy456/CityGS-X), [Grendel-GS](https://github.com/nyu-systems/Grendel-GS), [Gaussian Lightning](https://github.com/yzslab/gaussian-splatting-lightning), [TriMip-RF](https://github.com/wbhu/Tri-MipRF). Thanks for their great work!

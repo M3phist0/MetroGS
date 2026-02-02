@@ -41,7 +41,7 @@ optimizer_state_exp_avg_sq_list_key_by_index = {}
 density_controller_state_list_key_by_name = {}
 number_of_gaussians = []
 for i in tqdm(checkpoint_files, desc="Loading checkpoints"):
-    ckpt = torch.load(os.path.join(checkpoint_dir, i), map_location="cpu")
+    ckpt = torch.load(os.path.join(checkpoint_dir, i), map_location="cpu", weights_only=False)
     if isinstance(ckpt["hyper_parameters"]["gaussian"], Gaussian) is True:
         property_names = []
         gaussian_property_dict_key_prefix = "gaussian_model.gaussians."

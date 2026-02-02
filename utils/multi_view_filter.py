@@ -36,12 +36,6 @@ parser.add_argument("--multi_view_min_dis", type=float, default=0.01)
 parser.add_argument("--multi_view_max_dis", type=float, default=1.5)
 args = parser.parse_args()
 
-# dataparser_config = EstimatedDepthColmap(
-#     down_sample_factor=args.downsample_factor,
-#     eval_image_select_mode=args.eval_image_select_mode,
-#     eval_ratio=args.eval_ratio,
-#     split_mode=args.split_mode,
-# )
 dataparser_config = Colmap(
     down_sample_factor=args.downsample_factor,
     eval_image_select_mode=args.eval_image_select_mode,

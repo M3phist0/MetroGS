@@ -1,4 +1,0 @@
-model:
-  renderer:
-    model:
-      tcnn: true

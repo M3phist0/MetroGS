@@ -19,6 +19,8 @@ class EstimatedDepthColmap(Colmap):
 
     depth_scale_upper_bound: float = 5.
 
+    additional_ply_path: str = None
+
     def instantiate(self, path: str, output_path: str, global_rank: int) -> "EstimatedDepthColmapDataParser":
         return EstimatedDepthColmapDataParser(path=path, output_path=output_path, global_rank=global_rank, params=self)
 
@@ -26,6 +28,27 @@ class EstimatedDepthColmap(Colmap):
 class EstimatedDepthColmapDataParser(ColmapDataParser):
     def get_outputs(self) -> DataParserOutputs:
         dataparser_outputs = super().get_outputs()
+
+        if self.params.additional_ply_path:
+            if os.path.exists(self.params.additional_ply_path):
+                from internal.utils.graphics_utils import fetch_ply_without_rgb_normalization
+                basic_pcd = fetch_ply_without_rgb_normalization(self.params.additional_ply_path)
+                xyz = basic_pcd.points
+                rgb = basic_pcd.colors
+
+                point_cloud = dataparser_outputs.point_cloud
+                dataparser_outputs.point_cloud.xyz = np.vstack([point_cloud.xyz, xyz])
+                dataparser_outputs.point_cloud.rgb = np.vstack([point_cloud.rgb, rgb])
+
+                print(
+                    "additional load {} points from {}".format(
+                        xyz.shape[0], self.params.additional_ply_path
+                    )
+                )
+            else:
+                print(
+                    f"additional_ply_path does not exist: {self.params.additional_ply_path}, skip loading."
+                )
 
         if self.params.depth_rescaling is True:
             with open(os.path.join(self.path, self.params.depth_scale_name + ".json"), "r") as f:

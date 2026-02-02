@@ -1,1 +1,56 @@
--r requirements/lightning23.txt
+# Core
+lightning
+
+# Utils / config
+jsonargparse
+PyYAML
+tqdm
+rich
+
+# MoGe 2
+joblib
+huggingface_hub
+utils/MoGe/utils3d
+
+# Multi-View
+pycolmap
+numba
+
+# Pointmap
+scikit-learn
+open3d
+pypose
+mkl-service
+safetensors
+
+# Numeric / geometry
+numpy
+scipy
+einops
+matplotlib
+scikit-image
+
+# IO / image
+opencv-python
+Pillow
+plyfile
+mediapy
+defisheye
+
+# 3D
+trimesh
+open3d
+
+# Rasterization / GS
+gsplat
+
+# Logging / visualization
+tensorboard
+wandb
+viser
+
+# Optional ML helpers (only if used)
+e3nn
+hdbscan
+laspy
+torchmetrics
