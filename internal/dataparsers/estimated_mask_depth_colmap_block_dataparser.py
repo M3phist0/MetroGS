@@ -62,6 +62,7 @@ class EstimatedDepthBlockColmapDataParser(ColmapBlockDataParser):
         if self.params.overwrite_val_path:
             new_val_set = self.overwrite_val_set(self.params.overwrite_val_path)
             dataparser_outputs.val_set = new_val_set
+            dataparser_outputs.test_set = new_val_set
         
         print("final train set number:", len(dataparser_outputs.train_set), "val set number:", len(dataparser_outputs.val_set))
 

@@ -122,6 +122,11 @@ The depth and mask can be generated with:
 python utils/estimate_mask_dataset_depths.py data/your_scene -d $DOWNSAMPLE_RATIO
 ```
 
+And generate multi-view information:
+```bash
+python utils/multi_view_filter.py data/your_scene --split_mode {expirement(default) | reconstruction}
+```
+
 Thirdly, prepare pointmap ply file.
 
 ```bash
@@ -133,7 +138,7 @@ Thirdly, prepare pointmap ply file.
 #    -r: validation split ratio (default: 0.1)
 #
 python pointmap/scene_images_segment.py data/your_scene_path \
-  --split_mode {expirement(default), reconstruction} \
+  --split_mode {expirement(default) | reconstruction} \
   -k 4 -r 0.1 \
 
 
