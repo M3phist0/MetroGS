@@ -289,7 +289,7 @@ def save_confident_pointcloud_batch(points, colors, confs, output_path, conf_thr
         total_valid += np.count_nonzero((cfs >= conf_threshold) & (cfs > 1e-5))
     
     num_samples = int(total_valid * sample_ratio) if sample_ratio < 1.0 else total_valid
-    print("sample_ratio:", sample_ratio, total_valid, num_samples)
+    # print("sample_ratio:", sample_ratio, total_valid, num_samples)
     
     if num_samples == 0:
         save_ply(np.zeros((0, 3), dtype=np.float32), 

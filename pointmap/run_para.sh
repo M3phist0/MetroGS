@@ -68,8 +68,12 @@ done
 GPU_ARRAY=($AVAILABLE_GPUS)
 NUM_GPUS=${#GPU_ARRAY[@]}
 
-# 存储当前正在运行的任务的进程ID (PID)
-RUNNING_PIDS=()
+# 空闲 GPU 队列（初始化：全部 GPU 都空闲）
+FREE_GPUS=("${GPU_ARRAY[@]}")
+
+# PID -> GPU 映射（任务结束后归还 GPU 用）
+declare -A PID_TO_GPU
+
 
 echo "--- 开始并行调度任务 ---"
 echo "可用 GPU 数量: $NUM_GPUS"
@@ -78,51 +82,25 @@ echo "--------------------------------"
 
 # 核心调度循环
 for TASK_ID in "${TASKS[@]}"; do
-    # --- 1. 等待空闲 GPU (如果运行中的任务数达到 GPU 限制) ---
-    while [ ${#RUNNING_PIDS[@]} -ge $NUM_GPUS ]; do
-        
-        # 使用 wait -n 等待**任一**后台子进程结束 (等待第一个空闲的 GPU)
-        echo "当前有 $NUM_GPUS 个任务在运行中，等待其中一个完成..."
-        wait -n  # Bash 4.3+ 支持
+    # --- 1&2. 等待并拿到一个空闲 GPU（不会重复分配） ---
+    while [ ${#FREE_GPUS[@]} -eq 0 ]; do
+        echo "当前没有空闲 GPU，等待其中一个任务完成..."
+        wait -n  # 等任意一个后台任务结束
 
-        # 清理已完成的 PID，更新 RUNNING_PIDS 列表
-        NEW_PIDS=()
-        for PID in "${RUNNING_PIDS[@]}"; do
-            # 检查进程是否存在
-            if kill -0 "$PID" 2>/dev/null; then
-                NEW_PIDS+=($PID)
-            else
-                echo "GPU 进程 $PID 已完成。"
+        # 回收：把已经结束的任务占用的 GPU 放回 FREE_GPUS
+        running_set=" $(jobs -pr) "
+        for pid in "${!PID_TO_GPU[@]}"; do
+            if [[ "$running_set" != *" $pid "* ]]; then
+                echo "GPU 进程 $pid 已完成，归还 GPU ${PID_TO_GPU[$pid]}."
+                FREE_GPUS+=("${PID_TO_GPU[$pid]}")
+                unset "PID_TO_GPU[$pid]"
             fi
         done
-        RUNNING_PIDS=("${NEW_PIDS[@]}")
     done
 
-
-    # --- 2. 查找下一个可用 GPU ---
-    
-    # 找到一个未被占用的 GPU ID
-    CURRENT_GPU=""
-    for gpu_id in "${GPU_ARRAY[@]}"; do
-        IS_USED=false
-        # 简化处理：由于我们使用 wait -n 确保了 RUNNING_PIDS 数量 <= NUM_GPUS，
-        # 这里的 GPU 分配可以简化为：将当前任务索引映射到 GPU_ARRAY 索引。
-        
-        # 简单分配逻辑：使用 RUNNING_PIDS 的数量作为 GPU 数组的索引
-        # 这种逻辑在 wait -n 后可能导致 GPU ID 重复，但在后台进程数受限时是有效的负载均衡。
-        # 最简单的方式是：直接使用当前任务ID对GPU总数取模来决定使用哪个 GPU，
-        # 但我们这里采用更严谨的方式：从 GPU 数组中，根据当前 RUNNING_PIDS 的数量来分配 GPU
-        if [ ${#RUNNING_PIDS[@]} -lt $NUM_GPUS ]; then
-             CURRENT_GPU=${GPU_ARRAY[${#RUNNING_PIDS[@]}]}
-             break
-        fi
-    done
-    
-    if [ -z "$CURRENT_GPU" ]; then
-        # 理论上不会发生，因为上面的 while 循环确保了有空间
-        echo "错误：无法找到空闲 GPU，但 RUNNING_PIDS 数量不足！"
-        exit 1
-    fi
+    # 从空闲队列取一个 GPU（FIFO）
+    CURRENT_GPU="${FREE_GPUS[0]}"
+    FREE_GPUS=("${FREE_GPUS[@]:1}")
 
     # --- 3. 构造并运行命令 ---
     
@@ -149,17 +127,22 @@ for TASK_ID in "${TASKS[@]}"; do
         rm -rf -- "$CURRENT_SAVE_DIR"
     fi
     
-    COMMAND="CUDA_VISIBLE_DEVICES=${CURRENT_GPU} python pointmap/Pi3-Align/X_long.py --image_dir ${CURRENT_IMAGE_DIR} --sparse_dir ${CURRENT_SPARSE_DIR} --save_dir ${CURRENT_SAVE_DIR} --config ${CONFIG} -x Pi3"
-
-    
     echo "--- 任务 $TASK_ID 分配给 GPU $CURRENT_GPU ---"
-    echo "执行命令: $COMMAND"
+    echo "image_dir:  $CURRENT_IMAGE_DIR"
+    echo "sparse_dir: $CURRENT_SPARSE_DIR"
+    echo "save_dir:   $CURRENT_SAVE_DIR"
 
-    # 运行命令到后台，并捕获 PID
-    eval "$COMMAND" &
+    CUDA_VISIBLE_DEVICES="$CURRENT_GPU" \
+    python pointmap/Pi3-Align/X_long.py \
+    --image_dir "$CURRENT_IMAGE_DIR" \
+    --sparse_dir "$CURRENT_SPARSE_DIR" \
+    --save_dir "$CURRENT_SAVE_DIR" \
+    --config "$CONFIG" -x Pi3 &
+
     PID=$!
-    RUNNING_PIDS+=($PID) # 将新的 PID 加入到运行中列表
-    echo "后台进程 ID: $PID"
+    PID_TO_GPU["$PID"]="$CURRENT_GPU"
+    echo "后台进程 ID: $PID (占用 GPU $CURRENT_GPU)"
+
 done
 
 # --- 4. 结束所有任务 ---

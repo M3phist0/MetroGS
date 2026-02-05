@@ -1,0 +1,27 @@
+save_val: true
+model:
+  gaussian:
+    class_path: internal.models.metrogs.Gaussian2D
+    init_args:
+      sh_degree: 3
+  metric:
+    class_path: internal.metrics.metrogs_metrics.DistributedMetrics
+  renderer:
+    class_path: internal.renderers.metrogs_renderer.DistributedRenderer
+    init_args:
+      use_app: true
+      use_app_time: true
+  density: 
+    class_path: internal.density_controllers.metrogs_density_controller.DistributedController
+trainer:
+  strategy:
+    class_path: internal.mp_strategy.MPStrategy
+  devices: [0]
+data:
+  path: data/urban_scene_3d/residence-pixsfm/train
+  parser:
+    class_path: internal.dataparsers.estimated_mask_depth_colmap_dataparser.EstimatedDepthColmap
+    init_args:
+      overwrite_val_path: data/urban_scene_3d/residence-pixsfm/val
+      split_mode: reconstruction
+      down_sample_factor: 4.0

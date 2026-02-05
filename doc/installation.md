@@ -53,7 +53,7 @@ pip install -r requirements.txt
 ### F. Download Prior Models
 
 #### MoGe-2
-# NOTE: do not run `pip install -r utils/MoGe/requirements.txt`
+NOTE: do not run `pip install -r utils/MoGe/requirements.txt`
 ```bash
 # Mode: moge-2-vitl-normal
 Download link: https://huggingface.co/Ruicheng/moge-2-vitl-normal/blob/main/model.pt
