@@ -42,7 +42,7 @@ class DistributedRenderer(RendererConfig):
     tile_based_culling: bool = False
 
     camera_alpha: float = 0.7
-    k_overlap: int = 10
+    k_overlap: int = 30
 
     # use_app: bool = True
     use_app: bool = False
@@ -1636,6 +1636,11 @@ def find_most_similar_cameras_robust(
     return results
 
 def get_dis(target, candi, L):
+    if len(candi) != L:
+        return float('inf')
+    # papaer version 1.0
+    return sum((L - i) * abs(ord(target[i]) - ord(candi[i])) for i in range(L))
+
     # only consider number may be right
     def extract_numbers(s: str) -> float:
         num_chars = [c for c in s if c.isdigit()]

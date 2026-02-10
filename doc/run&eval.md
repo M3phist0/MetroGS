@@ -21,6 +21,7 @@ python main.py test --config configs/metrogs/val/${SCENE}.yaml -n ${NAME}
 ### C. Mesh extraction and evaluation
 ```bash
 python utils/gs2d_mesh_extraction.py outputs/${NAME} \
+        --post ${POST_FLAG} \
         --voxel_size ${VOXEL_SIZE} \
         --sdf_trunc ${SDF_TRUNC} \
         --depth_trunc ${DEPTH_TRUNC} \

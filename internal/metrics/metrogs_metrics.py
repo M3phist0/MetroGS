@@ -35,8 +35,7 @@ class DistributedMetrics(CityGSV2Metrics):
     lambda_scale: float = 0.1
     scale_thresh: float = 0.0
     scale_reg_from: int = 0
-
-    normal_factor: float = 0.0
+    scale_delay: bool = False
 
     lambda_mapping: float = 0.1
 
@@ -274,7 +273,7 @@ class DistributedMetricsModule(CityGSV2MetricsModule):
                 metrics_i["loss"] = metrics_i["loss"] + d_reg
 
             # scale regularization
-            if step >= self.config.scale_reg_from and step < self.config.multi_view_from:
+            if step >= self.config.scale_reg_from and (self.config.scale_delay or step < self.config.multi_view_from):
                 visible_mask = output["visibility_filter"]
                 scales = output["scales"][visible_mask]
                 sorted_scale, _ = torch.sort(scales, dim=-1)

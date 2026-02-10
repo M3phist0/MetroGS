@@ -7,7 +7,7 @@ filter
 video*
 tmp
 tmt
-test
+*test*
 nohup.out
 mogetmp
 todo.txt

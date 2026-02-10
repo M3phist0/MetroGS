@@ -1,11 +1,21 @@
 from dataclasses import dataclass
 import os
+import sys
 import torch
 import open3d as o3d
 from jsonargparse import CLI
 from internal.utils.gaussian_model_loader import GaussianModelLoader
 from internal.utils.gs2d_mesh_utils import GS2DMeshUtils, post_process_mesh
 
+def _rewrite_bool_flags(a, flags):
+    o=[];i=0
+    while i<len(a):
+        x=a[i]
+        if x.startswith("--no-") and ("--"+x[5:]) in flags: o+=["--"+x[5:], "false"]
+        elif x in flags and (i+1==len(a) or a[i+1].startswith("-")): o+=[x, "true"]
+        else: o.append(x)
+        i+=1
+    return o
 
 @dataclass
 class CLIArgs:
@@ -23,10 +33,14 @@ class CLIArgs:
 
     unbounded: bool = False
 
+    post: bool = False
+
     mesh_res: int = 1024
 
-
 def main():
+    bool_flags = {"--post", "--unbounded"}
+    sys.argv = [sys.argv[0]] + _rewrite_bool_flags(sys.argv[1:], bool_flags)
+
     args = CLI(CLIArgs)
 
     device = torch.device("cuda")
@@ -117,10 +131,12 @@ def main():
     if os.path.isfile(output_dir):
         output_dir = os.path.dirname(output_dir)
     o3d.io.write_triangle_mesh(os.path.join(output_dir, name), mesh)
-    print("mesh saved at {}".format(os.path.join(output_dir, name)))
 
-    # post-process the mesh and save, saving the largest N clusters
-    print("post-processing...")
-    mesh_post = post_process_mesh(mesh, cluster_to_keep=args.num_cluster)
-    o3d.io.write_triangle_mesh(os.path.join(output_dir, name.replace('.ply', '_post.ply')), mesh_post)
-    print("mesh post processed saved at {}".format(os.path.join(output_dir, name.replace('.ply', '_post.ply'))))
+    if not args.post:
+        print("mesh saved at {}".format(os.path.join(output_dir, name)))
+    else:
+        # post-process the mesh and save, saving the largest N clusters
+        print("post-processing...")
+        mesh_post = post_process_mesh(mesh, cluster_to_keep=args.num_cluster)
+        o3d.io.write_triangle_mesh(os.path.join(output_dir, name), mesh_post)
+        print("mesh post processed saved at {}".format(os.path.join(output_dir, name)))

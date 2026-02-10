@@ -3,7 +3,7 @@
 
 ```bash
 # clone repository
-git clone https://github.com/M3phist0/MetroGS.git
+git clone --recursive https://github.com/M3phist0/MetroGS.git
 cd MetroGS
 ```
 
@@ -31,7 +31,7 @@ Use `--no-build-isolation` to resolve the error “ModuleNotFoundError: No modul
 # basic
 pip install submodules/dist-2dgs --no-build-isolation
 pip install submodules/simple-knn --no-build-isolation
-# patchmatch
+# patchmatch | Note: submodules/propagation/setup.py "compute_xx" and "-D_GLIBCXX_USE_CXX11_ABI" must match to your_env_setting
 pip install submodules/propagation --no-build-isolation
 # apperance
 pip install submodules/nvdiffrast --no-build-isolation

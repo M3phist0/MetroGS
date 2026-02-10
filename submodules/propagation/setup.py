@@ -16,7 +16,7 @@ setup(
             extra_compile_args={
                 'cxx': ['-O3'],
                 'nvcc': ['-O3',
-                    '-D_GLIBCXX_USE_CXX11_ABI=1',
+                    '-D_GLIBCXX_USE_CXX11_ABI=1', # remember match to the result of "print("cxx11 abi:", torch._C._GLIBCXX_USE_CXX11_ABI)"
                     '-gencode=arch=compute_120,code=sm_120',
                 ]
             }),
