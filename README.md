@@ -12,7 +12,8 @@ The current implementation is preliminary and subject to ongoing development. Th
 ## TODO List
 
 - \[ \] Incorporate CLM-GS.
-- \[ \]Release the checkpoints.
+- \[ \] Release the checkpoints.
+
 
 ## Citation
 If you find this repository useful, please use the following BibTeX entry for citation.
