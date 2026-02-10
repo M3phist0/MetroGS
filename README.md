@@ -9,6 +9,11 @@ The current implementation is preliminary and subject to ongoing development. Th
 - [Run and Eval](doc/run&eval.md)
 - [Video Rendering on GS and Mesh](doc/render_video.md)
 
+## TODO List
+
+- \[ \] Incorporate CLM-GS.
+- \[ \]Release the checkpoints.
+
 ## Citation
 If you find this repository useful, please use the following BibTeX entry for citation.
 ```latex
