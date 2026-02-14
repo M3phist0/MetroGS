@@ -16,16 +16,16 @@ YAML=MatrixCity-Street
 # rm -rf data/matrix_city/${SCENE}/train/block_A/segments
 
 # ============================================= train&eval model =============================================
-# export NCCL_SHM_DISABLE=1
-# export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-# CUDA_VISIBLE_DEVICES=0,1,2,3 python main_bsz.py fit --config configs/metrogs/train/${YAML}.yaml -n ${NAME}
+export NCCL_SHM_DISABLE=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+CUDA_VISIBLE_DEVICES=0,1,2,3 python main_bsz.py fit --config configs/metrogs/train/${YAML}.yaml -n ${NAME}
 
-# python utils/merge_distributed_ckpts.py outputs/${NAME}
+python utils/merge_distributed_ckpts.py outputs/${NAME}
 
-# rm outputs/${NAME}/checkpoints/*180000-rank*
+rm outputs/${NAME}/checkpoints/*180000-rank*
 
-# python main.py test --config configs/metrogs/val/${YAML}.yaml --weights_only false -n ${NAME}
+python main.py test --config configs/metrogs/val/${YAML}.yaml --weights_only false -n ${NAME}
 
-# CUDA_VISIBLE_DEVICES=0 python utils/gs2d_mesh_extraction.py outputs/${NAME} --post --voxel_size 1 --sdf_trunc 4 --depth_trunc 500
+CUDA_VISIBLE_DEVICES=0 python utils/gs2d_mesh_extraction.py outputs/${NAME} --post --voxel_size 1 --sdf_trunc 4 --depth_trunc 500
 
 python tools/eval_tnt/run.py --scene Block_A_ds --dataset-dir data/geometry_gt/MC_Street --ply-path outputs/${NAME}/fuse.ply

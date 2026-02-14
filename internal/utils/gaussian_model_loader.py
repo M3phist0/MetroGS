@@ -143,7 +143,7 @@ class GaussianModelLoader:
         if eval_mode is True:
             stage = "validation"
 
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
         model = cls.initialize_model_from_checkpoint(checkpoint, device)
         renderer = cls.initialize_renderer_from_checkpoint(checkpoint, stage, device)

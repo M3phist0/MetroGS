@@ -201,9 +201,10 @@ class DistributedRendererImpl(Renderer):
             lightning_module.trainer.datamodule.dataparser_outputs.val_set.cameras = val_set.cameras
 
     def load_state_dict(self, state_dict, strict: bool = False):
-        print("load appearance!")
-        self.n_appearances = state_dict["model._appearance_embeddings"].shape[0]
-        self._setup_model(device=state_dict["model._appearance_embeddings"].device)
+        if "model._appearance_embeddings" in state_dict:
+            print("load appearance!")
+            self.n_appearances = state_dict["model._appearance_embeddings"].shape[0]
+            self._setup_model(device=state_dict["model._appearance_embeddings"].device)
         return super().load_state_dict(state_dict, strict)
     
     def _setup_model(self, device=None):

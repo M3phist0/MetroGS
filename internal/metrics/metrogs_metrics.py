@@ -237,20 +237,27 @@ class DistributedMetricsModule(CityGSV2MetricsModule):
                 d_reg = torch.tensor(0., device=camera.device)
             else:
                 predicted_inverse_depth = 1. / (output["surf_depth"].clamp_min(0.).squeeze() + 1e-8)
-                if self.config.depth_normalized:
-                    # with torch.no_grad():
-                    clamp_val = (predicted_inverse_depth.mean() + 2 * predicted_inverse_depth.std()).item()
-                    predicted_inverse_depth = predicted_inverse_depth.clamp(max=clamp_val) / clamp_val
-                    gt_inverse_depth = gt_inverse_depth.clamp(max=clamp_val) / clamp_val
-
+            
                 tot_mask_pixel = 0
                 if isinstance(gt_inverse_depth, tuple):
                     gt_inverse_depth, gt_inverse_depth_mask = gt_inverse_depth
+
+                    if self.config.depth_normalized:
+                        # with torch.no_grad():
+                        clamp_val = (predicted_inverse_depth.mean() + 2 * predicted_inverse_depth.std()).item()
+                        predicted_inverse_depth = predicted_inverse_depth.clamp(max=clamp_val) / clamp_val
+                        gt_inverse_depth = gt_inverse_depth.clamp(max=clamp_val) / clamp_val
 
                     gt_inverse_depth = gt_inverse_depth * gt_inverse_depth_mask
                     predicted_inverse_depth = predicted_inverse_depth * gt_inverse_depth_mask
 
                     tot_mask_pixel = gt_inverse_depth_mask.sum()
+                else:
+                    if self.config.depth_normalized:
+                        # with torch.no_grad():
+                        clamp_val = (predicted_inverse_depth.mean() + 2 * predicted_inverse_depth.std()).item()
+                        predicted_inverse_depth = predicted_inverse_depth.clamp(max=clamp_val) / clamp_val
+                        gt_inverse_depth = gt_inverse_depth.clamp(max=clamp_val) / clamp_val
 
                 gt_inverse_depth, predicted_inverse_depth = \
                     gt_inverse_depth[coverage_y[0]: coverage_y[1], :], predicted_inverse_depth[coverage_y[0]: coverage_y[1], :]
@@ -297,12 +304,9 @@ class DistributedMetricsModule(CityGSV2MetricsModule):
                         mutli_view_data = mutli_view_data_list[i]
                         src_camera_list, src_name_list, src_gt_image_list = mutli_view_data
                         if src_gt_image_list is not None:
-                            try:
-                                propagated_depth, propagated_normal = \
-                                    depth_propagation(camera, gt_image_gray, ref_depth, src_camera_list, src_gt_image_list, rend_normal, 
-                                                    patch_size=self.config.patch_size, max_scale=self.config.max_scale)
-                            except:
-                                print('mv error:', propagated_depth.min(), propagated_depth.max())
+                            propagated_depth, propagated_normal = \
+                                depth_propagation(camera, gt_image_gray, ref_depth, src_camera_list, src_gt_image_list, rend_normal, 
+                                                patch_size=self.config.patch_size, max_scale=self.config.max_scale)
                             
                             ref_K = camera.get_K()[:3, :3]
                             ref_pose = camera.world_to_camera.transpose(0, 1).inverse()

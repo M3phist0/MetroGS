@@ -1,3 +1,6 @@
 [submodule "submodules/tiny-cuda-nn"]
 	path = submodules/tiny-cuda-nn
 	url = https://github.com/NVlabs/tiny-cuda-nn.git
+[submodule "submodules/clm-submodules/cpu-adam"]
+	path = submodules/clm-submodules/cpu-adam
+	url = https://gh-proxy.org/https://github.com/TarzanZhao/cpu-adam.git
