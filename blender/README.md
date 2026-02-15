@@ -7,7 +7,7 @@ cd blender
 # python 3.10 is necessary for blender 3.4 on which our scripts based
 conda create -n blender python=3.10 -y 
 conda activate blender
-pip install bpy==3.4
+pip install bpy==3.4 --extra-index-url https://download.blender.org/pypi/
 pip install imageio
 pip install tqdm
 pip install imageio[ffmpeg]

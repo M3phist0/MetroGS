@@ -7,10 +7,13 @@ MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fide
 - [Run and Eval](doc/run&eval.md)
 - [Video Rendering on GS and Mesh](doc/render_video.md)
 
+### Checkpoints
+Preprocessed pointmap and checkpoints are provided: https://pan.baidu.com/s/1XsEjppkuRi-6NivTdth4ww?pwd=ek36
+
 ## TODO List
 
 - \[ \] Incorporate CLM-GS.
-- \[ \] Release the checkpoints.
+- \[x\] Release the checkpoints.
 
 
 ## Citation

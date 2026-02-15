@@ -10,7 +10,7 @@ from argparse import ArgumentParser, Namespace
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from internal.utils.general_utils import parse
-from internal.utils.render_utils import generate_path, record_path
+from internal.utils.render_utils import generate_path, record_path, generate_linear_path
 from internal.utils.gaussian_model_loader import GaussianModelLoader
 
 def voxel_filtering_no_gt(voxel_size, xy_range, target_xyz, std_ratio=2.0):
@@ -31,6 +31,8 @@ def voxel_filtering_no_gt(voxel_size, xy_range, target_xyz, std_ratio=2.0):
 if __name__ == "__main__":
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
+    parser.add_argument('--start', type=str, help='start frame', default=None)
+    parser.add_argument('--end', type=str, help='end frame', default=None)
     parser.add_argument('--output_path', type=str, help='path of config', default=None)
     parser.add_argument('--data_path', type=str, help='path of data', default=None)
     parser.add_argument("--n_frames", type=int, help="number of frames", default=240)
@@ -41,6 +43,8 @@ if __name__ == "__main__":
     parser.add_argument("--y_shift", type=float, help="y-axis shift of ellipse center, 0 means no pitch changes", default=0)
     parser.add_argument("--z_shift", type=float, help="z-axis shift of ellipse center, 0 means no changes", default=0)
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument("--is_depth", action="store_true")
+    parser.add_argument("--save_img", action="store_true")
     parser.add_argument("--filter", action="store_true", help="whether to filter out floaters")
     parser.add_argument("--vox_grid", type=int, help="number of voxelization grid", default=25)
     parser.add_argument("--std_ratio", type=float, help="used to control filtering threshold", default=2.0)
@@ -48,14 +52,12 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
 
     loadable_file = GaussianModelLoader.search_load_file(args.output_path)
-    ckpt = torch.load(loadable_file, map_location="cpu")
+    ckpt = torch.load(loadable_file, map_location="cpu", weights_only=False)
     dataparser_config = ckpt["datamodule_hyper_parameters"]["parser"]
     if args.data_path is not None:
         data_path = args.data_path
     else:
         data_path = ckpt["datamodule_hyper_parameters"]["path"]
-    # data_path = 'data/matrix_city/aerial/test/block_all_test'
-    # print('path:', data_path)
     dataparser_outputs = dataparser_config.instantiate(
         path=data_path,
         output_path=os.getcwd(),
@@ -88,62 +90,83 @@ if __name__ == "__main__":
     traj_dir = os.path.join(ckpt["datamodule_hyper_parameters"]["path"], 'traj')
     os.makedirs(traj_dir, exist_ok=True)
 
-    if not args.filter:
-        cam_traj = generate_path(cameras, traj_dir, n_frames=args.n_frames, pitch=args.pitch, shift=[args.x_shift, args.y_shift, args.z_shift], 
-                                 scale_percentile=args.scale_percentile, imageset=imageset)
+    if (args.start is not None) and (args.end is not None):
+        names = imageset.image_names
+        st_idx = next((i for i, f in enumerate(names) if args.start in f), None)
+        ed_idx = next((i for i, f in enumerate(names) if args.end in f), None)
+        if (st_idx is not None) and (ed_idx is not None):
+            st_pose = cameras[st_idx]
+            ed_pose = cameras[ed_idx]
+            cam_traj = generate_linear_path([st_pose, ed_pose], traj_dir, n_frames=args.n_frames)
+        else:
+            print("[ERROR] NOT FIND ST OR ED FRAME.")
     else:
-        cam_traj, colmap_to_world_transform, pose_recenter = generate_path(cameras, traj_dir, n_frames=args.n_frames, pitch=args.pitch, 
-                                                                           shift=[args.x_shift, args.y_shift], filter=True, 
-                                                                           scale_percentile=args.scale_percentile,
-                                                                           imageset=imageset)
-        xyz_homo = torch.cat((model.get_xyz, torch.zeros(model.get_xyz.shape[0], 1, device="cuda")), dim=-1)
-        transformed_xyz = xyz_homo @ torch.tensor(colmap_to_world_transform, device="cuda", dtype=xyz_homo.dtype).T
-        x_min, x_max = transformed_xyz[:, 0].min(), transformed_xyz[:, 0].max()
-        y_min, y_max = transformed_xyz[:, 1].min(), transformed_xyz[:, 1].max()
-        voxel_size = torch.tensor([(x_max - x_min) / args.vox_grid, (y_max - y_min) / args.vox_grid], device="cuda")
-        xy_range = torch.tensor([x_min, y_min, x_max, y_max], device="cuda")
-        vox_mask = voxel_filtering_no_gt(voxel_size, xy_range, transformed_xyz, args.std_ratio).bool().cpu().numpy()
-        model.opacities[vox_mask] = 0.0
+        if not args.filter:
+            cam_traj = generate_path(cameras, traj_dir, n_frames=args.n_frames, pitch=args.pitch, shift=[args.x_shift, args.y_shift, args.z_shift], 
+                                    scale_percentile=args.scale_percentile, imageset=imageset)
+        else:
+            cam_traj, colmap_to_world_transform, pose_recenter = generate_path(cameras, traj_dir, n_frames=args.n_frames, pitch=args.pitch, 
+                                                                            shift=[args.x_shift, args.y_shift], filter=True, 
+                                                                            scale_percentile=args.scale_percentile,
+                                                                            imageset=imageset)
+            xyz_homo = torch.cat((model.get_xyz, torch.zeros(model.get_xyz.shape[0], 1, device="cuda")), dim=-1)
+            transformed_xyz = xyz_homo @ torch.tensor(colmap_to_world_transform, device="cuda", dtype=xyz_homo.dtype).T
+            x_min, x_max = transformed_xyz[:, 0].min(), transformed_xyz[:, 0].max()
+            y_min, y_max = transformed_xyz[:, 1].min(), transformed_xyz[:, 1].max()
+            voxel_size = torch.tensor([(x_max - x_min) / args.vox_grid, (y_max - y_min) / args.vox_grid], device="cuda")
+            xy_range = torch.tensor([x_min, y_min, x_max, y_max], device="cuda")
+            vox_mask = voxel_filtering_no_gt(voxel_size, xy_range, transformed_xyz, args.std_ratio).bool().cpu().numpy()
+            model.opacities[vox_mask] = 0.0
 
-        if args.save_filtered_gs:
-            ckpt['state_dict']['gaussian_model.gaussians.opacities'][vox_mask] = -13.8  #1e-6
-            torch.save(ckpt, loadable_file.replace('.ckpt', '_filtered.ckpt'))
+            if args.save_filtered_gs:
+                ckpt['state_dict']['gaussian_model.gaussians.opacities'][vox_mask] = -13.8  #1e-6
+                torch.save(ckpt, loadable_file.replace('.ckpt', '_filtered.ckpt'))
     
     print(f"Camera trajectory saved to {traj_dir}. Start rendering...")
 
     os.makedirs('./videos', exist_ok=True)
-    video_path = os.path.join('./videos', f"{args.output_path.split('/')[-1]}_video.mp4")
+    if not args.is_depth:
+        video_path = os.path.join('./videos', f"{args.output_path.split('/')[-1]}_video.mp4")
+    else:
+        video_path = os.path.join('./videos', f"{args.output_path.split('/')[-1]}_depth_video.mp4")
+
     video = imageio.get_writer(video_path, fps=25)
 
     idx = 0
-    import torchvision
     renderer.use_app = False
+    if args.is_depth:
+        import cv2
+    if args.save_img:
+        import torchvision
+        os.makedirs("video_imgs", exist_ok=True)
+
     for t in tqdm(range(len(cam_traj) - 1, -1, -1)):
         cam = cam_traj[t]
         cam.height = torch.tensor(cam.height, device=cam.R.device)
         cam.width = torch.tensor(cam.width, device=cam.R.device)
         img = renderer(cam, model, bkgd_color)['render']
 
-        torchvision.utils.save_image(
-            img,
-            f'/mnt/sharedisk/chenkehua/GS+Nerf/MetroGS/tmt/{idx}.png',
-        )
-        idx += 1
+        if args.save_img:
+            torchvision.utils.save_image(img, f'video_imgs/{idx}.png')
 
         img = (img * 255).clamp(0, 255).to(torch.uint8).permute(1, 2, 0).cpu().numpy()
-        video.append_data(img)
 
+        idx += 1
 
-        # import cv2
-        # depth = renderer(cam, model, bkgd_color)["surf_depth"].detach().squeeze().cpu().numpy()
-        # mask = depth > 0
-        # depth[mask] = 1. / depth[mask]
-        # depth_i = depth
-        # depth_i[mask] = (depth[mask] - depth[mask].min()) / (depth[mask].max() - depth[mask].min() + 1e-8)
-        # # depth_i = (depth - depth.min()) / (depth.max() - depth.min() + 1e-8)
-        # depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
-        # depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
-        # video.append_data(depth_color)
+        if args.is_depth:
+            depth = renderer(cam, model, bkgd_color)["surf_depth"].detach().squeeze().cpu().numpy()
+            mask = depth > 0
+            depth[mask] = 1. / depth[mask]
+            depth_i = depth
+            depth_i[mask] = (depth[mask] - depth[mask].min()) / (depth[mask].max() - depth[mask].min() + 1e-8)
+            depth_i = (depth_i * 255).clip(0, 255).astype(np.uint8)
+            depth_color = cv2.applyColorMap(depth_i, cv2.COLORMAP_JET)
+            video.append_data(depth_color)
+            if args.save_img:
+                cv2.imwrite(f'video_imgs/{idx}.png', depth_color)
+        else:
+            video.append_data(img)
+
 
     video.close()
     print(f"Video saved to {video_path}.")

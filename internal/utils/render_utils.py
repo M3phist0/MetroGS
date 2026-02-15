@@ -214,29 +214,6 @@ def generate_path(viewpoint_cameras, traj_dir=None, n_frames=480, scale_percenti
                   "FoVx": cam.fov_x.item(),
               }, f)
   
-  index2name = {idx : value for (idx, value) in enumerate(imageset.image_names)}
-  poses = pad_poses(pose)
-  os.makedirs(traj_dir + '_ori', exist_ok=True)
-  for idx, c2w in enumerate(tqdm(poses, desc="Generating trajectory")):
-      name = index2name[idx]
-      if '00418' not in name and '00342' not in name:
-        continue
-      c2w = c2w @ np.diag([1, -1, -1, 1])
-      cam = copy.deepcopy(viewpoint_cameras[0]).to_device("cuda")
-      cam.height = int(cam.height / 2) * 2
-      cam.width = int(cam.width / 2) * 2
-      cam.world_to_camera = torch.from_numpy(np.linalg.inv(c2w).T).float().cuda()
-      cam.full_projection = (cam.world_to_camera.unsqueeze(0).bmm(cam.projection.unsqueeze(0))).squeeze(0)
-      cam.camera_center = cam.world_to_camera.inverse()[3, :3]
-      # traj.append(cam)
-      with open(os.path.join(traj_dir + '_ori', f"{str(idx).zfill(5)}.pkl"), "wb") as f:
-          pickle.dump({
-              "world_view_transform": cam.world_to_camera.cpu().numpy(),
-              "image_height": cam.height,
-              "image_width": cam.width,
-              "FoVx": cam.fov_x.item(),
-          }, f)
-
   if filter:
     return traj, colmap_to_world_transform, pose_recenter
   else:
@@ -357,3 +334,130 @@ def save_img_f32(depthmap, pth):
   """Save an image (probably a depthmap) to disk as a float32 TIFF."""
   with open(pth, 'wb') as f:
     Image.fromarray(np.nan_to_num(depthmap).astype(np.float32)).save(f, 'TIFF')
+
+def interp_poses(p0: np.ndarray, p1: np.ndarray, n_frames: int, include_endpoints: bool = True) -> np.ndarray:
+    """
+    Linear position in world XYZ + smooth orientation transition (SLERP).
+    Args:
+      p0, p1: (3,4) cam2world poses [R|t]
+      n_frames: number of frames in path
+      include_endpoints: if True, includes t=0 and t=1
+    Returns:
+      (n_frames, 3, 4) cam2world poses
+    """
+    assert p0.shape == (3,4) and p1.shape == (3,4), "p0,p1 must be (3,4) cam2world"
+    assert n_frames >= 1
+
+    def _normalize(x, eps=1e-8):
+        return x / (np.linalg.norm(x) + eps)
+
+    def _rotmat_to_quat(R):
+        # (3,3) -> [w,x,y,z]
+        m00, m01, m02 = R[0,0], R[0,1], R[0,2]
+        m10, m11, m12 = R[1,0], R[1,1], R[1,2]
+        m20, m21, m22 = R[2,0], R[2,1], R[2,2]
+        tr = m00 + m11 + m22
+        if tr > 0:
+            S = np.sqrt(tr + 1.0) * 2.0
+            w = 0.25 * S
+            x = (m21 - m12) / S
+            y = (m02 - m20) / S
+            z = (m10 - m01) / S
+        elif (m00 > m11) and (m00 > m22):
+            S = np.sqrt(1.0 + m00 - m11 - m22) * 2.0
+            w = (m21 - m12) / S
+            x = 0.25 * S
+            y = (m01 + m10) / S
+            z = (m02 + m20) / S
+        elif m11 > m22:
+            S = np.sqrt(1.0 + m11 - m00 - m22) * 2.0
+            w = (m02 - m20) / S
+            x = (m01 + m10) / S
+            y = 0.25 * S
+            z = (m12 + m21) / S
+        else:
+            S = np.sqrt(1.0 + m22 - m00 - m11) * 2.0
+            w = (m10 - m01) / S
+            x = (m02 + m20) / S
+            y = (m12 + m21) / S
+            z = 0.25 * S
+        return _normalize(np.array([w, x, y, z], dtype=np.float64))
+
+    def _quat_to_rotmat(q):
+        q = _normalize(q)
+        w, x, y, z = q
+        ww, xx, yy, zz = w*w, x*x, y*y, z*z
+        return np.array([
+            [ww + xx - yy - zz, 2*(x*y - w*z),     2*(x*z + w*y)],
+            [2*(x*y + w*z),     ww - xx + yy - zz, 2*(y*z - w*x)],
+            [2*(x*z - w*y),     2*(y*z + w*x),     ww - xx - yy + zz],
+        ], dtype=np.float64)
+
+    def _slerp(q0, q1, t):
+        q0 = _normalize(q0); q1 = _normalize(q1)
+        dot = float(np.dot(q0, q1))
+        # shortest path
+        if dot < 0.0:
+            q1 = -q1
+            dot = -dot
+        # very close -> lerp
+        if dot > 0.9995:
+            return _normalize((1.0 - t) * q0 + t * q1)
+        theta0 = np.arccos(np.clip(dot, -1.0, 1.0))
+        s0 = np.sin((1.0 - t) * theta0) / np.sin(theta0)
+        s1 = np.sin(t * theta0) / np.sin(theta0)
+        return s0 * q0 + s1 * q1
+
+    R0, C0 = p0[:, :3], p0[:, 3]
+    R1, C1 = p1[:, :3], p1[:, 3]
+    q0, q1 = _rotmat_to_quat(R0), _rotmat_to_quat(R1)
+
+    ts = np.linspace(0.0, 1.0, n_frames) if include_endpoints else np.linspace(0.0, 1.0, n_frames + 2)[1:-1]
+
+    out = []
+    for t in ts:
+        # linear position in world coords
+        C = (1.0 - t) * C0 + t * C1
+        # smooth orientation
+        R = _quat_to_rotmat(_slerp(q0, q1, float(t)))
+        out.append(np.concatenate([R, C[:, None]], axis=1))
+
+    return np.stack(out, axis=0)
+
+def generate_linear_path(viewpoint_cameras, traj_dir=None, n_frames=480):
+  c2ws = np.array([np.linalg.inv(np.asarray((cam.world_to_camera.T).cpu().numpy())) for cam in viewpoint_cameras])
+  pose = c2ws[:,:3,:] @ np.diag([1, -1, -1, 1])
+
+  if pose.shape[0] < 3:
+      pose_recenter = pose
+      colmap_to_world_transform = np.eye(4)
+  else:
+      pose_recenter, colmap_to_world_transform = transform_poses_pca(pose)
+
+  # generate new poses
+  new_poses = interp_poses(p0=pose_recenter[0], p1=pose_recenter[1], n_frames=n_frames)
+
+  # warp back to orignal scale
+  new_poses = np.linalg.inv(colmap_to_world_transform) @ pad_poses(new_poses)
+
+  traj = []
+  for idx, c2w in enumerate(tqdm(new_poses, desc="Generating trajectory")):
+      c2w = c2w @ np.diag([1, -1, -1, 1])
+      cam = copy.deepcopy(viewpoint_cameras[0]).to_device("cuda")
+      cam.height = int(cam.height / 2) * 2
+      cam.width = int(cam.width / 2) * 2
+      cam.world_to_camera = torch.from_numpy(np.linalg.inv(c2w).T).float().cuda()
+      cam.full_projection = (cam.world_to_camera.unsqueeze(0).bmm(cam.projection.unsqueeze(0))).squeeze(0)
+      cam.camera_center = cam.world_to_camera.inverse()[3, :3]
+      traj.append(cam)
+      if traj_dir is not None:
+          # save as pickle with name like 00000.pkl
+          with open(os.path.join(traj_dir, f"{str(idx).zfill(5)}.pkl"), "wb") as f:
+              pickle.dump({
+                  "world_view_transform": cam.world_to_camera.cpu().numpy(),
+                  "image_height": cam.height,
+                  "image_width": cam.width,
+                  "FoVx": cam.fov_x.item(),
+              }, f)
+
+  return traj
