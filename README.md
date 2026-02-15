@@ -8,7 +8,7 @@ MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fide
 - [Video Rendering on GS and Mesh](doc/render_video.md)
 
 ### Checkpoints
-Preprocessed pointmap and checkpoints are provided: https://pan.baidu.com/s/1XsEjppkuRi-6NivTdth4ww?pwd=ek36
+Preprocessed pointmaps and checkpoints are available [here](https://pan.baidu.com/s/1XsEjppkuRi-6NivTdth4ww?pwd=ek36).
 
 ## TODO List
 
