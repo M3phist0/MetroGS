@@ -1,9 +1,11 @@
-# MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes
+<h2 align="center">
+  MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes
+</h2>
 
 <!-- ![Russia](asset/russia_tex_mesh.gif) -->
 
 <p align="center">
-  <img src="asset/demo.gif" />
+  <img src="asset/demo.gif" width="80%" />
 </p>
 
 
