@@ -3,9 +3,8 @@
 </h2>
 
 
-<div align="center"
-     style="width:80%; margin:6px auto; transform: translateX(-12px);">
-    <a href="https://arxiv.org/html/2511.19172" style="margin-right:20px;">
+<div align="center">
+    <a href="https://arxiv.org/html/2511.19172"">
       <img src="https://img.shields.io/badge/arXiv-2511.19172-b31b1b?style=flat-square" height="20">
     </a>
     <a href="https://m3phist0.github.io/MetroGS/">
