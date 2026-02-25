@@ -1,17 +1,16 @@
-<div align="center" style="font-size: 1.5em; font-weight: 600; margin: 0.83em 0;">
+<h2 align="center">
   MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes
-</div>
+</h2>
+
 
 <div align="center" style="margin-top:6px; margin-bottom:10px;">
-  <a href="https://arxiv.org/html/2511.19172">
+  <a href="https://arxiv.org/html/2511.19172" style="margin:0 8px;">
     <img src="https://img.shields.io/badge/arXiv-2503.23044-b31b1b?style=flat-square" height="20">
   </a>
   <a href="https://m3phist0.github.io/MetroGS/" style="margin:0 8px;">
-    <img src="https://img.shields.io/badge/Project_Page-green?style=flat-square" height="20">
+    <img src="https://img.shields.io/badge/Project-Website-green?style=flat-square" height="20">
   </a>
 </div>
-
-<hr style="margin-top:8px; margin-bottom:20px;">
 
 <p align="center">
   <img src="asset/demo.gif" width="80%" />
