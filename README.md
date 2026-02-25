@@ -3,30 +3,27 @@
 </h2>
 
 
-<div style="
-  width:80%;
-  margin:0 auto;
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:20px;
-  align-items:center;
-  margin-bottom:10px;
-">
-  <div style="text-align:right;">
-    <a href="https://arxiv.org/html/2511.19172">
-      <img src="https://img.shields.io/badge/arXiv-2503.23044-b31b1b?style=flat-square" height="20">
-    </a>
-  </div>
-  <div style="text-align:left;">
-    <a href="https://m3phist0.github.io/MetroGS/">
-      <img src="https://img.shields.io/badge/Project-Website-green?style=flat-square" height="20">
-    </a>
-  </div>
+<div align="center" style="width:80%; margin: 10px auto; transform: translateX(-12px);">
+  <table style="width:100%; border-collapse:collapse;">
+    <tr>
+      <td style="text-align:right; padding-right:10px;">
+        <a href="https://arxiv.org/html/2511.19172">
+          <img src="https://img.shields.io/badge/arXiv-2511.19172-b31b1b?style=flat-square" height="20">
+        </a>
+      </td>
+      <td style="text-align:left; padding-left:10px;">
+        <a href="https://m3phist0.github.io/MetroGS/">
+          <img src="https://img.shields.io/badge/Project-Website-green?style=flat-square" height="20">
+        </a>
+      </td>
+    </tr>
+  </table>
 </div>
 
-<div style="width:80%; margin:0 auto;">
-  <img src="asset/demo.gif" style="width:100%; display:block;">
-</div>
+<p align="center">
+  <img src="asset/demo.gif" width="80%" />
+</p>
+
 
 
 
