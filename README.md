@@ -3,18 +3,31 @@
 </h2>
 
 
-<div align="center" style="margin-top:6px; margin-bottom:10px;">
-  <a href="https://arxiv.org/html/2511.19172" style="margin:0 8px;">
-    <img src="https://img.shields.io/badge/arXiv-2503.23044-b31b1b?style=flat-square" height="20">
-  </a>
-  <a href="https://m3phist0.github.io/MetroGS/" style="margin:0 8px;">
-    <img src="https://img.shields.io/badge/Project-Website-green?style=flat-square" height="20">
-  </a>
+<div style="
+  width:80%;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:20px;
+  align-items:center;
+  margin-bottom:10px;
+">
+  <div style="text-align:right;">
+    <a href="https://arxiv.org/html/2511.19172">
+      <img src="https://img.shields.io/badge/arXiv-2503.23044-b31b1b?style=flat-square" height="20">
+    </a>
+  </div>
+  <div style="text-align:left;">
+    <a href="https://m3phist0.github.io/MetroGS/">
+      <img src="https://img.shields.io/badge/Project-Website-green?style=flat-square" height="20">
+    </a>
+  </div>
 </div>
 
-<p align="center">
-  <img src="asset/demo.gif" width="80%" />
-</p>
+<div style="width:80%; margin:0 auto;">
+  <img src="asset/demo.gif" style="width:100%; display:block;">
+</div>
+
 
 
 ## Getting Started
