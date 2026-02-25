@@ -14,7 +14,6 @@ python utils/merge_distributed_ckpts.py outputs/${NAME}
 
 ### B. Evaluate Rendering Performance
 ```bash
-# For finetuned model, since the split mode and eval ratios are changed for per-block tuning, the parameters have to be reappointed. Please see the script for details.
 python main.py test --config configs/metrogs/val/${SCENE}.yaml -n ${NAME}
 ```
 
