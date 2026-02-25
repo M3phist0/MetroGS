@@ -97,7 +97,7 @@ if __name__ == "__main__":
         if (st_idx is not None) and (ed_idx is not None):
             st_pose = cameras[st_idx]
             ed_pose = cameras[ed_idx]
-            cam_traj = generate_linear_path([st_pose, ed_pose], traj_dir, n_frames=args.n_frames)
+            cam_traj = generate_linear_path([st_pose, ed_pose], traj_dir, n_frames=args.n_frames, pitch=args.pitch)
         else:
             print("[ERROR] NOT FIND ST OR ED FRAME.")
     else:
@@ -141,6 +141,7 @@ if __name__ == "__main__":
         os.makedirs("video_imgs", exist_ok=True)
 
     for t in tqdm(range(len(cam_traj) - 1, -1, -1)):
+    # for t in tqdm(range(len(cam_traj))):
         cam = cam_traj[t]
         cam.height = torch.tensor(cam.height, device=cam.R.device)
         cam.width = torch.tensor(cam.width, device=cam.R.device)
