@@ -5,35 +5,14 @@
 
 <div align="center"
      style="width:80%; margin:6px auto; transform: translateX(-12px);">
-
-  <table style="
-      width:100%;
-      border:none;
-      border-collapse:collapse;
-  ">
-    <tr>
-      <td style="
-          text-align:right;
-          padding:0 10px 0 0;
-          border:none;
-      ">
-        <a href="https://arxiv.org/html/2511.19172">
-          <img src="https://img.shields.io/badge/arXiv-2511.19172-b31b1b?style=flat-square" height="20">
-        </a>
-      </td>
-      <td style="
-          text-align:left;
-          padding:0 0 0 10px;
-          border:none;
-      ">
-        <a href="https://m3phist0.github.io/MetroGS/">
-          <img src="https://img.shields.io/badge/Project-Website-green?style=flat-square" height="20">
-        </a>
-      </td>
-    </tr>
-  </table>
-
+    <a href="https://arxiv.org/html/2511.19172" style="margin-right:20px;">
+      <img src="https://img.shields.io/badge/arXiv-2511.19172-b31b1b?style=flat-square" height="20">
+    </a>
+    <a href="https://m3phist0.github.io/MetroGS/">
+      <img src="https://img.shields.io/badge/Project-Website-green?style=flat-square" height="20">
+    </a>
 </div>
+
 
 <p align="center">
   <img src="asset/demo.gif" width="80%" />
