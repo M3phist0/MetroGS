@@ -73,11 +73,14 @@ Preprocessed pointmaps and checkpoints are available [here](https://pan.baidu.co
 ## Citation
 If you find this repository useful, please use the following BibTeX entry for citation.
 ```latex
-@article{chen2025metrogs,
-  title={MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes},
-  author={Chen, Kehua and Mao, Tianlu and Ma, Zhuxin and Jiang, Hao and Li, Zehao and Liu, Zihan and Gao, Shuqi and Zhao, Honglong and Dai, Feng and Zhang, Yucheng and others},
-  journal={arXiv preprint arXiv:2511.19172},
-  year={2025}
+@misc{chen2026metrogsefficientstablereconstruction,
+      title={MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes}, 
+      author={Kehua Chen and Tianlu Mao and Xinzhu Ma and Hao Jiang and Zehao Li and Zihan Liu and Shuqi Gao and Honglong Zhao and Feng Dai and Yucheng Zhang and Zhaoqi Wang},
+      year={2026},
+      eprint={2511.19172},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2511.19172}, 
 }
 ```
 
