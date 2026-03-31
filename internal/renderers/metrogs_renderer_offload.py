@@ -16,7 +16,7 @@ import torch.distributed.nn.functional as dist_func
 from dist_2dgs import GaussianRasterizationSettings, GaussianRasterizer
 from dist_2dgs._C import get_local2j_ids_bool
 
-from internal.models.triplane_appearance import TriMipModel
+from internal.models.triplane_appearance_offload import TriMipModel
 import torch.distributed as dist
 
 DEFAULT_BLOCK_SIZE: int =  16
@@ -237,7 +237,7 @@ class DistributedRendererImpl(Renderer):
         self.world_size = module.trainer.world_size
         self.global_rank = module.trainer.global_rank
 
-        def estimate_aabb(xyz_tensor, k_mad=torch.tensor([4.0, 15.0, 4.0]).cuda()):
+        def estimate_aabb(xyz_tensor, k_mad=torch.tensor([4.0, 15.0, 4.0]).cpu()):
             medians = torch.median(xyz_tensor, dim=0).values # Shape (D,)
             abs_deviations = torch.abs(xyz_tensor - medians) # Shape (N, D)
             mads = torch.median(abs_deviations, dim=0).values # Shape (D,)
@@ -248,7 +248,7 @@ class DistributedRendererImpl(Renderer):
 
         if self.use_app:
             xyz = module.gaussian_model.get_xyz
-            k_mad = torch.tensor([4.0, 4.0, 4.0]).cuda()
+            k_mad = torch.tensor([4.0, 4.0, 4.0]).cpu()
             if self.aabb is None:
                 aabb = estimate_aabb(xyz, k_mad)
             else:
@@ -413,7 +413,6 @@ class DistributedRendererImpl(Renderer):
             record_transmittance=False,
             **kwargs,
     ):
-        
         """
         Render the scene.
 
@@ -439,6 +438,7 @@ class DistributedRendererImpl(Renderer):
             screenspace_points.retain_grad()
         except:
             pass
+
         
         gs_count = pc.get_xyz.shape[0]
         global_idx = torch.arange(gs_count, device=pc.get_xyz.device)
@@ -931,49 +931,6 @@ class DistributedRendererImpl(Renderer):
         super().after_training_step(step, module)
 
         self.trimming(step, module)
-
-        bsz = module.batch_size
-        if self.redistribute_interval < 0:
-            return
-        if step >= self.redistribute_until:
-            return
-        if all([i % self.redistribute_interval != 0 for i in range(step, step + bsz)]): 
-            return
-        if self.world_size > 1:
-            self.redistribute(module)
-
-    def redistribute(self, module):
-        with torch.no_grad():
-            # gather number of Gaussians
-            member_n_gaussians = [0 for _ in range(self.world_size)]
-            torch.distributed.all_gather_object(member_n_gaussians, module.gaussian_model.get_xyz.shape[0])
-            if self.global_rank == 0:
-                print(f"[rank={self.global_rank}] member_n_gaussians={member_n_gaussians}")
-                pass
-
-            if min(member_n_gaussians) * self.redistribute_threshold >= max(member_n_gaussians):
-                print(f"[rank={self.global_rank}] skip redistribution: under threshold")
-                return
-
-            # print(f"[rank={self.global_rank}] begin redistribution")
-            self.random_redistribute(module)
-
-    def random_redistribute(self, module):
-        destination = torch.randint(0, self.world_size, (module.gaussian_model.get_xyz.shape[0],), device=module.device)
-        count_by_destination = list(torch.bincount(destination, minlength=self.world_size).chunk(self.world_size))
-
-        # print(f"[rank={self.global_rank}] destination_count={[i.item() for i in count_by_destination]}")
-
-        # number of gaussians to receive all-to-all
-        number_of_gaussians_to_receive = list(torch.zeros((self.world_size,), dtype=count_by_destination[0].dtype, device=module.device).chunk(self.world_size))
-        dist_func.all_to_all(number_of_gaussians_to_receive, count_by_destination)
-
-        self.optimizer_all2all(destination, number_of_gaussians_to_receive, module.gaussian_model, module.gaussian_optimizers)
-
-        new_number_of_gaussians = module.gaussian_model.get_xyz.shape[0]
-        print(f"[rank={self.global_rank}] redistributed: n_gaussians={new_number_of_gaussians}")
-
-        self.on_density_changed()
 
     def all2all_gaussian_state(self, local_tensor, destination, number_of_gaussians_to_receive):
         output_tensor_list = []

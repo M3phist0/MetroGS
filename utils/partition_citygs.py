@@ -46,7 +46,7 @@ if __name__ == "__main__":
     
     # initialize model
     device = torch.device("cuda")
-    ckpt = torch.load(ckpt_path, map_location="cpu")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     bkgd_color = ckpt["hyper_parameters"]["background_color"]
     model = GaussianModelLoader.initialize_model_from_checkpoint(
         ckpt,

@@ -335,7 +335,7 @@ def save_img_f32(depthmap, pth):
   with open(pth, 'wb') as f:
     Image.fromarray(np.nan_to_num(depthmap).astype(np.float32)).save(f, 'TIFF')
 
-def interp_poses(p0: np.ndarray, p1: np.ndarray, n_frames: int, include_endpoints: bool = True) -> np.ndarray:
+def interp_poses(p0: np.ndarray, p1: np.ndarray, n_frames: int, pitch = None, include_endpoints: bool = True) -> np.ndarray:
     """
     Linear position in world XYZ + smooth orientation transition (SLERP).
     Args:
@@ -415,16 +415,33 @@ def interp_poses(p0: np.ndarray, p1: np.ndarray, n_frames: int, include_endpoint
     ts = np.linspace(0.0, 1.0, n_frames) if include_endpoints else np.linspace(0.0, 1.0, n_frames + 2)[1:-1]
 
     out = []
+    # for t in ts:
+    #     # linear position in world coords
+    #     C = (1.0 - t) * C0 + t * C1
+    #     # smooth orientation
+    #     R = _quat_to_rotmat(_slerp(q0, q1, float(t)))
+    #     out.append(np.concatenate([R, C[:, None]], axis=1))
+    if pitch is not None:
+        pitch = np.deg2rad(pitch)
+        cp, sp = np.cos(pitch), np.sin(pitch)
+        Rx = np.array([[1, 0, 0],
+                      [0, cp, -sp],
+                      [0, sp,  cp]], dtype=np.float32)
+    else:
+        Rx = None
+
     for t in ts:
-        # linear position in world coords
         C = (1.0 - t) * C0 + t * C1
-        # smooth orientation
         R = _quat_to_rotmat(_slerp(q0, q1, float(t)))
+
+        if Rx is not None:
+            R = R @ Rx   # 相机局部 pitch（抬头/低头）
+
         out.append(np.concatenate([R, C[:, None]], axis=1))
 
     return np.stack(out, axis=0)
 
-def generate_linear_path(viewpoint_cameras, traj_dir=None, n_frames=480):
+def generate_linear_path(viewpoint_cameras, traj_dir=None, n_frames=480, pitch=None):
   c2ws = np.array([np.linalg.inv(np.asarray((cam.world_to_camera.T).cpu().numpy())) for cam in viewpoint_cameras])
   pose = c2ws[:,:3,:] @ np.diag([1, -1, -1, 1])
 
@@ -435,7 +452,7 @@ def generate_linear_path(viewpoint_cameras, traj_dir=None, n_frames=480):
       pose_recenter, colmap_to_world_transform = transform_poses_pca(pose)
 
   # generate new poses
-  new_poses = interp_poses(p0=pose_recenter[0], p1=pose_recenter[1], n_frames=n_frames)
+  new_poses = interp_poses(p0=pose_recenter[0], p1=pose_recenter[1], n_frames=n_frames, pitch=pitch)
 
   # warp back to orignal scale
   new_poses = np.linalg.inv(colmap_to_world_transform) @ pad_poses(new_poses)

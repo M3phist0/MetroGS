@@ -273,11 +273,12 @@ class DistributedMetricsModule(CityGSV2MetricsModule):
 
             # d_reg += n_reg
 
-            if step < pl_module.hparams["density"].densify_until_iter:
-                metrics_i["loss"] = pl_module.hparams["metric"].lambda_dssim * (1. - metrics_i["ssim"]) + metrics_i["dist_loss"] + metrics_i["normal_loss"] + d_reg
-                metrics_i["extra_loss"] = (1.0 - pl_module.hparams["metric"].lambda_dssim) * metrics_i["rgb_diff"]
-            else:
-                metrics_i["loss"] = metrics_i["loss"] + d_reg
+            # if step < pl_module.hparams["density"].densify_until_iter:
+            #     metrics_i["loss"] = pl_module.hparams["metric"].lambda_dssim * (1. - metrics_i["ssim"]) + metrics_i["dist_loss"] + metrics_i["normal_loss"] + d_reg
+            #     metrics_i["extra_loss"] = (1.0 - pl_module.hparams["metric"].lambda_dssim) * metrics_i["rgb_diff"]
+            # else:
+            #     metrics_i["loss"] = metrics_i["loss"] + d_reg
+            metrics_i["loss"] = metrics_i["loss"] + d_reg
 
             # scale regularization
             if step >= self.config.scale_reg_from and (self.config.scale_delay or step < self.config.multi_view_from):
@@ -304,9 +305,12 @@ class DistributedMetricsModule(CityGSV2MetricsModule):
                         mutli_view_data = mutli_view_data_list[i]
                         src_camera_list, src_name_list, src_gt_image_list = mutli_view_data
                         if src_gt_image_list is not None:
-                            propagated_depth, propagated_normal = \
-                                depth_propagation(camera, gt_image_gray, ref_depth, src_camera_list, src_gt_image_list, rend_normal, 
-                                                patch_size=self.config.patch_size, max_scale=self.config.max_scale)
+                            try:
+                                propagated_depth, propagated_normal = \
+                                    depth_propagation(camera, gt_image_gray, ref_depth, src_camera_list, src_gt_image_list, rend_normal, 
+                                                    patch_size=self.config.patch_size, max_scale=self.config.max_scale)
+                            except:
+                                print('mv error:', propagated_depth.min(), propagated_depth.max())
                             
                             ref_K = camera.get_K()[:3, :3]
                             ref_pose = camera.world_to_camera.transpose(0, 1).inverse()
@@ -322,13 +326,10 @@ class DistributedMetricsModule(CityGSV2MetricsModule):
                                                                 src_K.unsqueeze(0), src_pose.unsqueeze(0), 
                                                                 thre1=self.config.pixel_noise_th, thre2=0.01)
 
-                                del depth_reprojected, x2d_src, y2d_src, relative_depth_diff
-                                
                                 if geometric_counts is None:
                                     geometric_counts = mask.to(torch.uint8)
                                 else:
                                     geometric_counts += mask.to(torch.uint8)
-                                
                             
                             count = geometric_counts.squeeze()
                             valid_mask = count >= 1
@@ -387,8 +388,8 @@ class DistributedMetricsModule(CityGSV2MetricsModule):
         torch.cuda.empty_cache()
 
         # metrics["gs"] = gaussian_model.get_xyz.shape[0]
-        gathered_size = torch.empty(torch.distributed.get_world_size(), dtype=torch.int, device=gaussian_model.get_xyz.device)
-        local_size = torch.tensor(gaussian_model.get_xyz.shape[0], dtype=torch.int, device=gaussian_model.get_xyz.device)
+        gathered_size = torch.empty(torch.distributed.get_world_size(), dtype=torch.int, device="cuda")
+        local_size = torch.tensor(gaussian_model.get_xyz.shape[0], dtype=torch.int, device="cuda")
         torch.distributed.all_gather_into_tensor(gathered_size, local_size)
         
         metrics = {'gs': sum(gathered_size), 'loss': 0.0}

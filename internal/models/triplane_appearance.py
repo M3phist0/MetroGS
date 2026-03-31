@@ -262,7 +262,6 @@ class TriMipModel(nn.Module):
         net_width: int = 128,
         occ_grid_resolution: int = 128,
         aabb: Union[torch.Tensor, List[float]] = torch.tensor([-3, -3, -3, 3, 3, 3]),
-        version=1,
         final_activation="None",
     ) -> None:
         super().__init__()
@@ -285,44 +284,18 @@ class TriMipModel(nn.Module):
 
         self.encoding = TriMipEncoding(n_levels, plane_size, feature_dim)
 
-        self.version = version
-        if version == 1:
-            self.mlp = tcnn.Network(
-                n_input_dims=self.encoding.dim_out + self.app_emb_dim,
-                n_output_dims=n_rgb_dims,
-                network_config={
-                    "otype": "FullyFusedMLP",
-                    "activation": "ReLU",
-                    "output_activation": final_activation,
-                    "n_neurons": net_width,
-                    "n_hidden_layers": net_depth_base,
-                },
-            )
-        else:
-            self.mlp = tcnn.Network(
-                n_input_dims=self.encoding.dim_out,
-                n_output_dims=geo_feat_dim,
-                network_config={
-                    "otype": "FullyFusedMLP",
-                    "activation": "ReLU",
-                    "output_activation": "None",
-                    "n_neurons": net_width,
-                    "n_hidden_layers": net_depth_base,
-                },
-            )
-
-            self.mlp_head = tcnn.Network(
-                n_input_dims=self.app_emb_dim + geo_feat_dim,
-                n_output_dims=n_rgb_dims,
-                network_config={
-                    "otype": "FullyFusedMLP",
-                    "activation": "ReLU",
-                    "output_activation": final_activation,
-                    "n_neurons": net_width,
-                    "n_hidden_layers": net_depth_color,
-                },
-            )
-
+        self.mlp = tcnn.Network(
+            n_input_dims=self.encoding.dim_out + self.app_emb_dim,
+            n_output_dims=n_rgb_dims,
+            network_config={
+                "otype": "FullyFusedMLP",
+                "activation": "ReLU",
+                "output_activation": final_activation,
+                "n_neurons": net_width,
+                "n_hidden_layers": net_depth_base,
+            },
+        )
+        
     def forward(self, image, depth, camera, emb_precomp=None):
 
         detached_depth = depth.detach()
@@ -360,20 +333,11 @@ class TriMipModel(nn.Module):
         # enc_grid = encoded_x.view(H, W, -1)
         # visualize_encoding(enc_grid, save_dir='tmp', prefix=view_idx.cpu().item())
 
-        if self.version == 1:
-            embedding_expand = embedding.expand(encoded_x.shape[0], -1)
+        embedding_expand = embedding.expand(encoded_x.shape[0], -1)
 
-            combined_features = torch.cat([encoded_x, embedding_expand], dim=-1)
+        combined_features = torch.cat([encoded_x, embedding_expand], dim=-1)
 
-            mapping = self.mlp(combined_features).permute(1, 0).view(3, H, W)
-        else:
-            geo_feature = self.mlp(encoded_x)
-
-            embedding_expand = embedding.expand(geo_feature.shape[0], -1)
-
-            combined_features = torch.cat([geo_feature, embedding_expand], dim=-1)
-
-            mapping = self.mlp_head(combined_features).permute(1, 0).view(3, H, W)
+        mapping = self.mlp(combined_features).permute(1, 0).view(3, H, W)
 
         transformed_image = image * mapping
 
@@ -511,19 +475,7 @@ class TriMipModel(nn.Module):
             warm_up=self.optimization.warm_up,
         )
 
-        if self.version == 1:
-            return [embedding_optimizer, enc_optimizer, mlp_optimizer], [embedding_scheduler, enc_scheduler, mlp_scheduler]
-        else:
-            head_optimizer, head_scheduler = self._create_optimizer_and_scheduler(
-                self.mlp_head.parameters(),
-                "appearance_mlp_head",
-                lr_init=self.optimization.lr_init,
-                lr_final_factor=self.optimization.lr_final_factor,
-                max_steps=self.optimization.max_steps,
-                eps=self.optimization.eps,
-                warm_up=self.optimization.warm_up,
-            )
-            return [embedding_optimizer, enc_optimizer, mlp_optimizer, head_optimizer], [embedding_scheduler, enc_scheduler, mlp_scheduler, head_scheduler]
+        return [embedding_optimizer, enc_optimizer, mlp_optimizer], [embedding_scheduler, enc_scheduler, mlp_scheduler]
     
     @staticmethod
     def _create_optimizer_and_scheduler(
