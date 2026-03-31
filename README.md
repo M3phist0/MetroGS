@@ -35,7 +35,8 @@ The detailed setting of each step on GauU-Scene and MatrixCity Dataset can be fo
 # ${SCENE} is the name of training config file.
 # ${NAME} is the name of model output file.
 [Optional] export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-export NCCL_SHM_DISABLE=1 # Shared memory (SHM) is currently not supported.
+# export NCCL_CUMEM_HOST_ENABLE=0 # Use shared memory init (not include dataset)
+export NCCL_SHM_DISABLE=1 # Shared memory (SHM) is not supported.
 python main_bsz.py fit --config configs/metrogs/train/${SCENE}.yaml -n ${NAME}
 python utils/merge_distributed_ckpts.py outputs/${NAME}
 ```
@@ -73,11 +74,14 @@ Preprocessed pointmaps and checkpoints are available [here](https://pan.baidu.co
 ## Citation
 If you find this repository useful, please use the following BibTeX entry for citation.
 ```latex
-@article{chen2025metrogs,
-  title={MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes},
-  author={Chen, Kehua and Mao, Tianlu and Ma, Zhuxin and Jiang, Hao and Li, Zehao and Liu, Zihan and Gao, Shuqi and Zhao, Honglong and Dai, Feng and Zhang, Yucheng and others},
-  journal={arXiv preprint arXiv:2511.19172},
-  year={2025}
+@misc{chen2026metrogsefficientstablereconstruction,
+      title={MetroGS: Efficient and Stable Reconstruction of Geometrically Accurate High-Fidelity Large-Scale Scenes}, 
+      author={Kehua Chen and Tianlu Mao and Xinzhu Ma and Hao Jiang and Zehao Li and Zihan Liu and Shuqi Gao and Honglong Zhao and Feng Dai and Yucheng Zhang and Zhaoqi Wang},
+      year={2026},
+      eprint={2511.19172},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2511.19172}, 
 }
 ```
 
