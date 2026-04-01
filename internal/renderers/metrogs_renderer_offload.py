@@ -16,7 +16,7 @@ import torch.distributed.nn.functional as dist_func
 from dist_2dgs import GaussianRasterizationSettings, GaussianRasterizer
 from dist_2dgs._C import get_local2j_ids_bool
 
-from internal.models.triplane_appearance_offload import TriMipModel
+from internal.models.triplane_appearance import TriMipModel
 import torch.distributed as dist
 
 DEFAULT_BLOCK_SIZE: int =  16

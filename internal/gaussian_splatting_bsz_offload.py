@@ -489,7 +489,6 @@ class GaussianSplatting(LightningModule):
 
         if self.trainer.world_size > 1 and hasattr(self.renderer, "model"):
             self.renderer.model.all_reduce(bsz)
-            self.renderer.model.sync_cpu_grads_from_cuda()
 
         # invoke `after_backward` interface of density controller
         self.density_controller.after_backward(
@@ -512,9 +511,6 @@ class GaussianSplatting(LightningModule):
         # optimize
         for optimizer in optimizers:
             optimizer.step()
-
-        if self.trainer.world_size > 1 and hasattr(self.renderer, "model"):
-            self.renderer.model.sync_cuda_from_cpu()
 
         # schedule lr
         for scheduler in schedulers:
